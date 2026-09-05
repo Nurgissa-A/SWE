@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  title: BiletFlow API
+  version: 0.1.0
+  description: Early-stage slice — authentication and basic event management (Weeks 1-4)
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        '201':
+          description: User created, verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '409':
+          description: Email already registered
+
+  /api/auth/verify-email:
+    post:
+      summary: Confirm an emailed verification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200':
+          description: Email verified
+        '400':
+          description: Invalid or expired token
+
+  /api/auth/login:
+    post:
+      summary: Log in and receive a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+
+  /api/auth/request-password-reset:
+    post:
+      summary: Trigger a password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Reset email sent if the account exists
+
+  /api/auth/reset-password:
+    post:
+      summary: Complete a password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        '200':
+          description: Password updated
+        '400':
+          description: Invalid or expired token
+
+  /api/users/me:
+    get:
+      summary: Get the current user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      summary: Update the current user's basic profile fields
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/organizer-profile:
+    post:
+      summary: Create or complete the organizer profile for the current user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contactEmail]
+              properties:
+                contactEmail: { type: string, format: email }
+                contactPhone: { type: string, nullable: true }
+                payoutAccountPlaceholder: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Organizer profile created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizerProfile'
+    get:
+      summary: Get the current user's organizer profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizerProfile'
+        '404':
+          description: No organizer profile exists for this user
+
+  /api/events:
+    post:
+      summary: Create a draft event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, startsAt]
+              properties:
+                title: { type: string }
+                description: { type: string, nullable: true }
+                category: { type: string, nullable: true }
+                startsAt: { type: string, format: date-time }
+                endsAt: { type: string, format: date-time, nullable: true }
+                venueId: { type: string, format: uuid, nullable: true }
+                visibility: { type: string, enum: [public, unlisted, private], default: public }
+                capacity: { type: integer, nullable: true }
+      responses:
+        '201':
+          description: Draft event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+    get:
+      summary: List events (own drafts for organizers, published events for others)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [draft, published, cancelled] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /api/events/{eventId}:
+    get:
+      summary: Get one event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+    patch:
+      summary: Edit a draft event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                startsAt: { type: string, format: date-time }
+                endsAt: { type: string, format: date-time }
+                capacity: { type: integer }
+                visibility: { type: string, enum: [public, unlisted, private] }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '409':
+          description: Cannot edit a published event's core details
+    delete:
+      summary: Cancel or delete a draft event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Deleted or cancelled
+
+  /api/events/{eventId}/publish:
+    post:
+      summary: Publish a draft event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Event published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Event missing required fields for publishing
+
+  /api/events/{eventId}/unpublish:
+    post:
+      summary: Move a published event back to draft
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Event unpublished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [attendee, organizer, event_admin, platform_admin] }
+        displayName: { type: string, nullable: true }
+        emailVerified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    OrganizerProfile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string, nullable: true }
+        payoutAccountPlaceholder: { type: string, nullable: true }
+
+    Event:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizerId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        category: { type: string, nullable: true }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time, nullable: true }
+        venueId: { type: string, format: uuid, nullable: true }
+        visibility: { type: string, enum: [public, unlisted, private] }
+        capacity: { type: integer, nullable: true }
+        status: { type: string, enum: [draft, published, cancelled] }
+        createdAt: { type: string, format: date-time }
