@@ -40,11 +40,24 @@ services:
       interval: 5s
       timeout: 3s
       retries: 15
+  go-migrate:
+    image: biletflow-events:local
+    build: ./backend-go
+    environment:
+      DATABASE_URL: postgresql://biletflow:${POSTGRES_PASSWORD}@postgres:5432/biletflow
+    entrypoint: ["/migrate"]
+    command: ["up"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
   go:
+    image: biletflow-events:local
     build: ./backend-go
     ports: ["127.0.0.1:8080:8080"]
     environment:
       JWT_PUBLIC_KEY_FILE: /run/keys/jwt-public.pem
+      DATABASE_URL: postgresql://biletflow:${POSTGRES_PASSWORD}@postgres:5432/biletflow
+      DB_MAX_CONNS: 5
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       JWT_ISSUER: biletflow-identity
       JWT_AUDIENCE: biletflow-api
       JWT_KEY_ID: biletflow-local-1
@@ -52,6 +65,12 @@ services:
     volumes: ["./.secrets/jwt-public.pem:/run/keys/jwt-public.pem:ro"]
     depends_on:
       python: {condition: service_healthy}
+      go-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
   mailpit:
     image: axllent/mailpit@sha256:0790692be935ea4420d085694f7985b1f692ca6a8771ab0e0bd8ba75ac180498
     ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]

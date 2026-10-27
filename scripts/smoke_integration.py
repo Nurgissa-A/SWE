@@ -2,13 +2,29 @@
 
 import os
 import re
+import subprocess
 import time
+import uuid
 from pathlib import Path
 
 import httpx
 import jwt
+import yaml
 from cryptography.hazmat.primitives.asymmetric import rsa
+from openapi_schema_validator import OAS30Validator
 from smoke_identity import onboard
+
+SPEC = yaml.safe_load(Path("docs/openapi.yaml").read_text())
+EVENT_SCHEMA = SPEC["components"]["schemas"]["Event"]
+
+
+def check_event(response):
+    response.raise_for_status()
+    event = response.json()
+    OAS30Validator(EVENT_SCHEMA).validate(event)
+    for key in ["id", "organizerId"]:
+        uuid.UUID(event[key])
+    return event
 
 
 def main():
@@ -37,7 +53,7 @@ def main():
                 assert events.post("/api/events", json=data, headers=attendee).status_code == 403
                 result = events.post("/api/events", json=data, headers=first)
                 assert result.status_code == 201, result.status_code
-                event = result.json()
+                event = check_event(result)
                 assert event["organizerId"] == user["id"]
                 path = "/api/events/" + event["id"]
                 assert events.get(path).status_code == 404
@@ -79,12 +95,71 @@ def main():
                         ).status_code
                         == 401
                     )
-                assert events.post(path + "/publish", headers=first).status_code == 200
-                assert events.get(path).status_code == 200
+                assert (
+                    events.patch(path, json={"title": "forged"}, headers=second).status_code == 403
+                )
+                assert (
+                    events.patch(path, json={"title": "attendee"}, headers=attendee).status_code
+                    == 403
+                )
+                assert events.post(path + "/publish", headers=first).status_code == 400
+                updated = check_event(
+                    events.patch(
+                        path,
+                        headers=first,
+                        json={
+                            "venueId": str(uuid.uuid4()),
+                            "capacity": 120,
+                            "title": "Persistent concert",
+                        },
+                    )
+                )
+                assert updated["status"] == "draft" and updated["capacity"] == 120
+                assert updated["startsAt"] == event["startsAt"]
+                assert events.patch(path, headers=first, json={"capacity": -1}).status_code == 400
+                assert (
+                    events.patch(path, headers=first, json={"organizerId": other["id"]}).status_code
+                    == 400
+                )
+                published = check_event(events.post(path + "/publish", headers=first))
+                assert published["status"] == "published"
+                assert events.post(path + "/publish", headers=first).status_code == 409
+                assert (
+                    events.patch(path, headers=first, json={"title": "late edit"}).status_code
+                    == 409
+                )
+                before_restart = check_event(events.get(path))
+                # Exercise a real process restart, retaining the same PostgreSQL volume.
+                subprocess.run(
+                    ["docker", "compose", "restart", "go"], check=True, capture_output=True
+                )
+                for _attempt in range(40):
+                    try:
+                        if events.get("/ready").status_code == 200:
+                            break
+                    except httpx.TransportError:
+                        pass
+                    time.sleep(0.5)
+                else:
+                    raise AssertionError("Go did not become ready after restart")
+                assert check_event(events.get(path)) == before_restart
+                assert events.get(path, headers=first).status_code == 200
+                preflight = events.options(
+                    path,
+                    headers={
+                        "Origin": "http://localhost:3000",
+                        "Access-Control-Request-Method": "PATCH",
+                        "Access-Control-Request-Headers": "authorization,content-type",
+                    },
+                )
+                assert preflight.status_code == 204
+                assert preflight.headers["access-control-allow-origin"] == "http://localhost:3000"
                 visible = events.get("/api/events", headers=attendee)
                 assert visible.status_code == 200 and event["id"] in [
                     x["id"] for x in visible.json()
                 ]
+                for row in visible.json():
+                    OAS30Validator(EVENT_SCHEMA).validate(row)
                 identity.post(
                     "/api/auth/request-password-reset", json={"email": user["email"]}
                 ).raise_for_status()
@@ -104,7 +179,8 @@ def main():
     print(
         "Python-Go HTTP integration passed: RS256, owner UUID, roles, draft isolation, "
         "foreign-owner denial, forged input, invalid/expired signatures, "
-        "publish and reset revocation."
+        "PATCH, publication conflicts, OpenAPI response schemas, PostgreSQL persistence "
+        "across Go restart, CORS and reset revocation."
     )
 
 

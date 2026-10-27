@@ -2,6 +2,7 @@ package event
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -29,7 +30,7 @@ func TestEventAuthorizationAndVisibility(t *testing.T) {
 	h.RegisterRoutes(mux)
 	owner := auth.Principal{ID: "00000000-0000-4000-8000-000000000001", Role: "organizer", EmailVerified: true}
 	other := auth.Principal{ID: "00000000-0000-4000-8000-000000000002", Role: "organizer", EmailVerified: true}
-	input := `{"title":"Private draft","startsAt":"2030-01-01T10:00:00Z","visibility":"private"}`
+	input := `{"title":"Private draft","startsAt":"2030-01-01T10:00:00Z","visibility":"private","venueId":"00000000-0000-4000-8000-000000000010"}`
 	created := requestAs(mux, "POST", "/api/events", input, owner)
 	if created.Code != 201 {
 		t.Fatalf("create: %d %s", created.Code, created.Body.String())
@@ -57,8 +58,8 @@ func TestEventAuthorizationAndVisibility(t *testing.T) {
 	if requestAs(mux, "GET", "/api/events/"+e.ID, "", auth.Principal{}).Code != 404 {
 		t.Fatal("private published event leaked")
 	}
-	public, _ := service.Create(owner.ID, CreateEventInput{Title: "Public", StartsAt: time.Now(), Visibility: VisibilityPublic})
-	_, _ = service.Publish(public.ID)
+	public, _ := service.Create(auth.WithPrincipal(context.Background(), owner), CreateEventInput{Title: "Public", StartsAt: time.Now(), Visibility: VisibilityPublic, VenueID: ptr("00000000-0000-4000-8000-000000000010")})
+	_, _ = service.Publish(auth.WithPrincipal(context.Background(), owner), public.ID)
 	if requestAs(mux, "GET", "/api/events/"+public.ID, "", auth.Principal{}).Code != 200 {
 		t.Fatal("public published detail unavailable")
 	}

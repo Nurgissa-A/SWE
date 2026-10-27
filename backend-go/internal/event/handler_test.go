@@ -75,7 +75,7 @@ func TestCreateEvent_MissingTitle(t *testing.T) {
 func TestGetEvent_NotFound(t *testing.T) {
 	mux := newTestMux(newTestHandler())
 
-	req := httptest.NewRequest(http.MethodGet, "/api/events/does-not-exist", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/events/00000000-0000-4000-8000-000000000099", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -90,6 +90,7 @@ func TestPublishEvent_Success(t *testing.T) {
 
 	createBody, _ := json.Marshal(CreateEventInput{
 		Title:    "Publishable Event",
+		VenueID:  ptr("00000000-0000-4000-8000-000000000010"),
 		StartsAt: time.Now().Add(24 * time.Hour),
 	})
 	createReq := httptest.NewRequest(http.MethodPost, "/api/events", bytes.NewReader(createBody))
