@@ -1,0 +1,9 @@
+extends: [spectral:oas]
+rules:
+  # The shared early contract predates operation IDs/tags. Do not invent IDs
+  # that would change client operation naming; enforce these on a later version.
+  operation-operationId: off
+  operation-tags: off
+  info-contact: off
+  info-description: error
+  oas3-api-servers: error

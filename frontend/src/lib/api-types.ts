@@ -13,7 +13,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Register a new user */
+        /**
+         * Register a new user
+         * @description Creates attendee only. Email is trimmed/lowercased. Extra fields including role or userId are rejected; email is sent through the configured adapter.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -40,13 +43,14 @@ export interface paths {
                         "application/json": components["schemas"]["User"];
                     };
                 };
-                /** @description Email already registered */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -64,7 +68,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm an emailed verification token */
+        /**
+         * Confirm an emailed verification token
+         * @description Confirm an emailed verification token.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -87,13 +94,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Invalid or expired token */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -111,7 +119,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Log in and receive a JWT */
+        /**
+         * Log in and receive a JWT
+         * @description Verified active users authenticate with normalized email/password. Returns token and user; unverified accounts return 403. JWT role is a snapshot; current DB role/status is authoritative.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -136,18 +147,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            token?: string;
-                            user?: components["schemas"]["User"];
+                            token: string;
+                            user: components["schemas"]["User"];
                         };
                     };
                 };
-                /** @description Invalid credentials */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -165,7 +177,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Trigger a password reset email */
+        /**
+         * Trigger a password reset email
+         * @description Trigger a password reset email.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -189,6 +204,14 @@ export interface paths {
                     };
                     content?: never;
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -206,7 +229,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Complete a password reset */
+        /**
+         * Complete a password reset
+         * @description Complete a password reset.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -230,13 +256,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Invalid or expired token */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -252,7 +279,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the current user's profile */
+        /**
+         * Get the current user's profile
+         * @description Get the current user's profile.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -271,6 +301,14 @@ export interface paths {
                         "application/json": components["schemas"]["User"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         put?: never;
@@ -278,7 +316,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update the current user's basic profile fields */
+        /**
+         * Update the current user's basic profile fields
+         * @description Update the current user's basic profile fields.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -289,7 +330,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        displayName?: string;
+                        displayName: string;
                     };
                 };
             };
@@ -303,6 +344,14 @@ export interface paths {
                         "application/json": components["schemas"]["User"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         trace?: never;
@@ -314,7 +363,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the current user's organizer profile */
+        /**
+         * Get the current user's organizer profile
+         * @description Get the current user's organizer profile.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -333,17 +385,22 @@ export interface paths {
                         "application/json": components["schemas"]["OrganizerProfile"];
                     };
                 };
-                /** @description No organizer profile exists for this user */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         put?: never;
-        /** Create or complete the organizer profile for the current user */
+        /**
+         * Create or complete the organizer profile for the current user
+         * @description Create or complete the organizer profile for the current user.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -357,6 +414,7 @@ export interface paths {
                         /** Format: email */
                         contactEmail: string;
                         contactPhone?: string | null;
+                        /** @description Simulation label only, prefixed demo:. No real payout information. */
                         payoutAccountPlaceholder?: string | null;
                     };
                 };
@@ -371,12 +429,61 @@ export interface paths {
                         "application/json": components["schemas"]["OrganizerProfile"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Replace contact and simulation placeholder fields on own organizer profile
+         * @description Replace contact and simulation placeholder fields on own organizer profile.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        contactEmail: string;
+                        contactPhone?: string | null;
+                        /** @description Simulation label only, prefixed demo:. No real payout information. */
+                        payoutAccountPlaceholder?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Profile updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrganizerProfile"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
         trace?: never;
     };
     "/api/events": {
@@ -386,7 +493,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List events (own drafts for organizers, published events for others) */
+        /**
+         * List events (own drafts for organizers, published events for others)
+         * @description List events (own drafts for organizers, published events for others). Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         get: {
             parameters: {
                 query?: {
@@ -407,10 +517,18 @@ export interface paths {
                         "application/json": components["schemas"]["Event"][];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         put?: never;
-        /** Create a draft event */
+        /**
+         * Create a draft event
+         * @description Create a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -449,6 +567,11 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -464,7 +587,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get one event */
+        /**
+         * Get one event
+         * @description Get one event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -485,6 +611,9 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
                 /** @description Event not found */
                 404: {
                     headers: {
@@ -492,11 +621,16 @@ export interface paths {
                     };
                     content?: never;
                 };
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         put?: never;
         post?: never;
-        /** Cancel or delete a draft event */
+        /**
+         * Cancel or delete a draft event
+         * @description Cancel or delete a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         delete: {
             parameters: {
                 query?: never;
@@ -515,11 +649,19 @@ export interface paths {
                     };
                     content?: never;
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         options?: never;
         head?: never;
-        /** Edit a draft event */
+        /**
+         * Edit a draft event
+         * @description Edit a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -554,6 +696,9 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
                 /** @description Cannot edit a published event's core details */
                 409: {
                     headers: {
@@ -561,6 +706,8 @@ export interface paths {
                     };
                     content?: never;
                 };
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         trace?: never;
@@ -574,7 +721,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Publish a draft event */
+        /**
+         * Publish a draft event
+         * @description Publish a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -602,6 +752,10 @@ export interface paths {
                     };
                     content?: never;
                 };
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -619,7 +773,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Move a published event back to draft */
+        /**
+         * Move a published event back to draft
+         * @description Move a published event back to draft. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -640,6 +797,11 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -654,25 +816,25 @@ export interface components {
     schemas: {
         User: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: email */
-            email?: string;
+            email: string;
             /** @enum {string} */
-            role?: "attendee" | "organizer" | "event_admin" | "platform_admin";
-            displayName?: string | null;
-            emailVerified?: boolean;
+            role: "attendee" | "organizer" | "event_admin" | "platform_admin";
+            displayName: string | null;
+            emailVerified: boolean;
             /** Format: date-time */
-            createdAt?: string;
+            createdAt: string;
         };
         OrganizerProfile: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: uuid */
-            userId?: string;
+            userId: string;
             /** Format: email */
-            contactEmail?: string;
-            contactPhone?: string | null;
-            payoutAccountPlaceholder?: string | null;
+            contactEmail: string;
+            contactPhone: string | null;
+            payoutAccountPlaceholder: string | null;
         };
         Event: {
             /** Format: uuid */
@@ -696,8 +858,24 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        Error: {
+            error: {
+                code: string;
+                message: string;
+            };
+        };
     };
-    responses: never;
+    responses: {
+        /** @description Request failed; no credential or request input echoed */
+        APIError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;

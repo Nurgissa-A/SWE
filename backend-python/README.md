@@ -40,3 +40,31 @@ cd backend-python
 ```
 
 Run migrations from `backend-python/`. Downgrade is destructive and intended for disposable test databases only. Never let Python migrations create or change Go-owned Event tables.
+
+## Authentication and permissions
+
+Register, consume the single-use token from the Mailpit message with `POST /api/auth/verify-email`, then log in. The returned `token` is a 15-minute RS256 bearer JWT. Use `Authorization: Bearer <token>` for current-user/profile operations. Request bodies and validation inputs are not logged; identity bodies are limited to 16 KiB. Never paste real passwords or tokens into issue reports.
+
+Registration always creates **attendee**. A verified attendee may create their **own** organizer profile with `POST /api/organizer-profile`; this promotes the current DB role to organizer. `GET` reads it; `PATCH` replaces contact settings. Only `demo:` payout labels or null are accepted. No real KYC, payout or financial integration is provided. The existing reset-password contract is implemented with expiring single-use tokens and JWT revocation.
+
+Privileged roles have no public assignment API. An authorized operator with container/DB access may run:
+
+```sh
+docker compose exec python python -m app.cli set-role verified-staff@example.com --role event_admin
+docker compose exec python python -m app.cli set-role verified-admin@example.com --role platform_admin
+docker compose exec python python -m app.cli disable-user verified-staff@example.com
+```
+
+These commands invalidate old JWTs; log in again. Event Admin's platform role grants no access to arbitrary events. Event-specific assignment/check-in is Go-owned future work. Protect operator/DB access as an administrative privilege.
+
+## PostgreSQL tests
+
+Use a **separate database ending in `_test`**, never the demonstration/production database. The suite truncates Python identity tables in that test database. In the example below set the password to your generated local value without committing it:
+
+```sh
+docker compose exec postgres createdb -U biletflow biletflow_test
+export TEST_DATABASE_URL='postgresql+psycopg://biletflow:YOUR_LOCAL_PASSWORD@localhost:5432/biletflow_test'
+.venv/bin/pytest backend-python/tests -v
+```
+
+CI creates this database independently. Tests inject a memory mail adapter and temporary RSA keys; real mail/production credentials are never required. See [API contract/tooling](../docs/api-contract.md), [ERD](../docs/erd.md) and [architecture decisions](../docs/architecture.md). SMTP delivery's transactional limitation and production deployment boundaries are documented there.

@@ -3,7 +3,10 @@ package event
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+
+	"github.com/biletflow/backend-go/internal/auth"
 )
 
 type Handler struct {
@@ -25,22 +28,35 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	var in CreateEventInput
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&in); err != nil {
+		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	// TODO(Week 3-4): organizerID comes from the JWT claims set by
-	// Aliar's auth middleware. Hardcoded until that's wired in.
-	organizerID := "TODO-organizer-id"
+	if decoder.Decode(&struct{}{}) != io.EOF {
+		auth.WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	principal, ok := auth.Current(r.Context())
+	if !ok {
+		auth.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+	if principal.Role != "organizer" {
+		auth.WriteError(w, http.StatusForbidden, "Organizer role required")
+		return
+	}
+	organizerID := principal.ID
 
 	e, err := h.service.Create(organizerID, in)
 	if err != nil {
 		if errors.Is(err, ErrValidation) {
-			http.Error(w, "title and startsAt are required", http.StatusBadRequest)
+			auth.WriteError(w, http.StatusBadRequest, "title and startsAt are required")
 			return
 		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		auth.WriteError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -56,10 +72,17 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 
 	events, err := h.service.List(status)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		auth.WriteError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
-	writeJSON(w, http.StatusOK, events)
+	visible := make([]*Event, 0, len(events))
+	principal, _ := auth.Current(r.Context())
+	for _, e := range events {
+		if (principal.Role == "organizer" && principal.ID == e.OrganizerID) || (e.Status == StatusPublished && e.Visibility == VisibilityPublic) {
+			visible = append(visible, e)
+		}
+	}
+	writeJSON(w, http.StatusOK, visible)
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
@@ -67,28 +90,51 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	e, err := h.service.Get(id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.Error(w, "event not found", http.StatusNotFound)
+			auth.WriteError(w, http.StatusNotFound, "event not found")
 			return
 		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		auth.WriteError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	principal, _ := auth.Current(r.Context())
+	if !((principal.Role == "organizer" && principal.ID == e.OrganizerID) || (e.Status == StatusPublished && (e.Visibility == VisibilityPublic || e.Visibility == VisibilityUnlisted))) {
+		auth.WriteError(w, http.StatusNotFound, "Event not found")
 		return
 	}
 	writeJSON(w, http.StatusOK, e)
 }
 
 func (h *Handler) publish(w http.ResponseWriter, r *http.Request) {
+	principal, ok := auth.Current(r.Context())
+	if !ok {
+		auth.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+	if principal.Role != "organizer" {
+		auth.WriteError(w, http.StatusForbidden, "Organizer role required")
+		return
+	}
 	id := r.PathValue("eventId")
+	current, err := h.service.Get(id)
+	if err != nil {
+		auth.WriteError(w, http.StatusNotFound, "Event not found")
+		return
+	}
+	if current.OrganizerID != principal.ID {
+		auth.WriteError(w, http.StatusForbidden, "Event owner required")
+		return
+	}
 	e, err := h.service.Publish(id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.Error(w, "event not found", http.StatusNotFound)
+			auth.WriteError(w, http.StatusNotFound, "event not found")
 			return
 		}
 		if errors.Is(err, ErrValidation) {
-			http.Error(w, "event missing required fields for publishing", http.StatusBadRequest)
+			auth.WriteError(w, http.StatusBadRequest, "event missing required fields for publishing")
 			return
 		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		auth.WriteError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 	writeJSON(w, http.StatusOK, e)
