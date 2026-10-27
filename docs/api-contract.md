@@ -28,7 +28,18 @@ All identity errors use `{error:{code,message}}` and never echo credentials or v
 - Servers now identify their actual route subsets rather than incorrectly claiming the frontend port serves every API.
 - Frontend generated types are regenerated from this contract; frontend page/component logic is untouched.
 
-Go create/list/detail/publish already have source implementations; PATCH/DELETE/unpublish are still contract-only and are not implemented by the Python work. Event persistence, UUID correction and broader lifecycle validation remain Go-owned work. The separately reviewable JWT integration secures only the existing route slice and removes the hardcoded organizer from its completed path.
+Go create/list/detail/PATCH/publish now persist to PostgreSQL and enforce authorization in the service. DELETE/unpublish remain planned. See [Go README](../backend-go/README.md).
+
+Madi's Event contract update preserves `/api`, camelCase and array list responses.
+PATCH adds optional `category` and `venueId` so incomplete physical-event drafts
+can be completed. PATCH null/empty/unknown fields are rejected; omitted values
+are unchanged. Title must be nonblank, capacity is a positive PostgreSQL integer,
+and end follows start. Publish now requires venueId (physical-event SRS) and
+returns 409 for a non-draft state. Clients that previously published without a
+venue must supply one on create or PATCH. Event response fields always present
+at runtime are now required in the schema, making generated TypeScript safer.
+Actual HTTP smoke responses are validated against this schema, including after
+service restart. No frontend pages/components were changed.
 
 ## Tools
 

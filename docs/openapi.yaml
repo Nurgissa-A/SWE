@@ -487,6 +487,8 @@ paths:
               properties:
                 title:
                   type: string
+                  minLength: 1
+                  pattern: \S
                 description:
                   type: string
                   nullable: true
@@ -500,6 +502,7 @@ paths:
                   type: string
                   format: date-time
                   nullable: true
+                  description: When supplied, must be after startsAt.
                 venueId:
                   type: string
                   format: uuid
@@ -514,6 +517,9 @@ paths:
                 capacity:
                   type: integer
                   nullable: true
+                  minimum: 1
+                  maximum: 2147483647
+              additionalProperties: false
       responses:
         '201':
           description: Draft event created
@@ -533,8 +539,8 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Create a draft event. Event ownership and visibility authorization are enforced by
-        the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      description: Create an organizer-owned draft; title and startsAt are required. Optional venueId
+        can be added with PATCH before publication.
       x-implementation-status: implemented
     get:
       summary: List events (own drafts for organizers, published events for others)
@@ -571,9 +577,8 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: List events (own drafts for organizers, published events for others). Event ownership
-        and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish
-        are still pending Madi implementation.
+      description: Authenticated list returns own events plus public published events, ordered by createdAt
+        descending then id. No pagination is defined in this contract.
       x-implementation-status: implemented
   /api/events/{eventId}:
     get:
@@ -593,7 +598,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Event'
         '404':
-          description: Event not found
+          $ref: '#/components/responses/APIError'
         '400':
           $ref: '#/components/responses/APIError'
         '401':
@@ -606,8 +611,9 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Get one event. Event ownership and visibility authorization are enforced by the JWT
-        integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      description: Owner can preview any own event. Other callers can read public or unlisted published
+        events; all other events return 404. Anonymous detail access is allowed; invalid supplied JWTs
+        are rejected.
       x-implementation-status: implemented
     patch:
       summary: Edit a draft event
@@ -629,6 +635,8 @@ paths:
               properties:
                 title:
                   type: string
+                  minLength: 1
+                  pattern: \S
                 description:
                   type: string
                 startsAt:
@@ -637,14 +645,24 @@ paths:
                 endsAt:
                   type: string
                   format: date-time
+                  description: When supplied, must be after startsAt.
                 capacity:
                   type: integer
+                  minimum: 1
+                  maximum: 2147483647
                 visibility:
                   type: string
                   enum:
                   - public
                   - unlisted
                   - private
+                category:
+                  type: string
+                venueId:
+                  type: string
+                  format: uuid
+              additionalProperties: false
+              minProperties: 1
       responses:
         '200':
           description: Updated
@@ -653,7 +671,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Event'
         '409':
-          description: Cannot edit a published event's core details
+          $ref: '#/components/responses/APIError'
         '400':
           $ref: '#/components/responses/APIError'
         '401':
@@ -664,11 +682,13 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Edit a draft event. Event ownership and visibility authorization are enforced by the
-        JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
-      x-implementation-status: planned
+      description: Update own draft atomically; omitted fields remain unchanged. Empty objects, JSON null
+        values and unknown fields return 400. Published/cancelled events return 409.
+      x-implementation-status: implemented
     delete:
       summary: Cancel or delete a draft event
       security:
@@ -718,7 +738,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Event'
         '400':
-          description: Event missing required fields for publishing
+          $ref: '#/components/responses/APIError'
         '401':
           $ref: '#/components/responses/APIError'
         '403':
@@ -727,10 +747,15 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Publish a draft event. Event ownership and visibility authorization are enforced by
-        the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      description: Atomically publish own draft. Requires a nonblank title, startsAt and nonzero venueId
+        for a physical event. Invalid fields return 400; any non-draft state, including repeated publication,
+        returns 409.
       x-implementation-status: implemented
   /api/events/{eventId}/unpublish:
     post:
@@ -842,6 +867,8 @@ components:
           format: uuid
         title:
           type: string
+          minLength: 1
+          pattern: \S
         description:
           type: string
           nullable: true
@@ -855,6 +882,7 @@ components:
           type: string
           format: date-time
           nullable: true
+          description: When supplied, must be after startsAt.
         venueId:
           type: string
           format: uuid
@@ -868,6 +896,8 @@ components:
         capacity:
           type: integer
           nullable: true
+          minimum: 1
+          maximum: 2147483647
         status:
           type: string
           enum:
@@ -877,6 +907,15 @@ components:
         createdAt:
           type: string
           format: date-time
+      required:
+      - id
+      - organizerId
+      - title
+      - startsAt
+      - visibility
+      - status
+      - createdAt
+      additionalProperties: false
     Error:
       type: object
       required:
