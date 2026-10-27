@@ -34,9 +34,7 @@ if not public.exists():
     public.chmod(0o644)
 env = root / ".env"
 if not env.exists():
-    with os.fdopen(
-        os.open(env, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w"
-    ) as stream:
+    with os.fdopen(os.open(env, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as stream:
         stream.write("POSTGRES_PASSWORD=" + secrets.token_hex(24) + "\n")
         stream.write(f"LOCAL_UID={os.getuid()}\nLOCAL_GID={os.getgid()}\n")
 print("Local configuration ready; no existing files overwritten.")

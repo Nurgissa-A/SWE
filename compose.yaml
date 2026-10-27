@@ -62,6 +62,6 @@ services:
     profiles: ["tools"]
     command: ["mock", "-h", "0.0.0.0", "/contracts/openapi.yaml"]
     volumes: ["./docs:/contracts:ro"]
-    ports: ["127.0.0.1:4010:4010"]
+    ports: ["127.0.0.1:${PRISM_PORT:-4010}:4010"]
 volumes:
   postgres-data:
