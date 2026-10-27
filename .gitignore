@@ -51,3 +51,9 @@ build/
 # Secrets
 *.key
 *.pem
+
+# Local identity credentials and test artifacts
+.secrets/
+.coverage
+htmlcov/
+*.egg-info/

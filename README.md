@@ -47,3 +47,7 @@ merge into main
 ```
 
 Do not push unfinished work directly to `main`.
+
+## Local backend environment
+
+See [Python backend setup](backend-python/README.md) for Docker Compose, PostgreSQL migrations, health checks and testing. Existing Go and frontend development commands remain available.

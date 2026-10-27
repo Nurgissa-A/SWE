@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biletflow-identity"
+version = "0.1.0"
+description = "BiletFlow identity and organizer profile service"
+requires-python = ">=3.12,<3.14"
+dependencies = ["fastapi", "uvicorn", "sqlalchemy", "psycopg[binary]", "alembic", "pydantic-settings", "email-validator", "argon2-cffi", "PyJWT[crypto]", "httpx"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "ruff", "openapi-spec-validator"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["integration: requires PostgreSQL or live services"]
