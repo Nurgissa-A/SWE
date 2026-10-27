@@ -1,0 +1,65 @@
+name: biletflow
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    environment:
+      POSTGRES_DB: biletflow
+      POSTGRES_USER: biletflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run python3 scripts/init_local.py first}
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U biletflow -d biletflow"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    image: biletflow-identity:local
+    build: ./backend-python
+    environment: &python-env
+      DATABASE_URL: postgresql+psycopg://biletflow:${POSTGRES_PASSWORD}@postgres:5432/biletflow
+      JWT_PRIVATE_KEY_FILE: /run/keys/jwt-private.pem
+      JWT_PUBLIC_KEY_FILE: /run/keys/jwt-public.pem
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
+  python:
+    user: "${LOCAL_UID:-10001}:${LOCAL_GID:-10001}"
+    image: biletflow-identity:local
+    build: ./backend-python
+    environment: *python-env
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["./.secrets:/run/keys:ro"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      mailpit: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  go:
+    build: ./backend-go
+    ports: ["127.0.0.1:8080:8080"]
+    environment:
+      JWT_PUBLIC_KEY_FILE: /run/keys/jwt-public.pem
+      JWT_ISSUER: biletflow-identity
+      JWT_AUDIENCE: biletflow-api
+      JWT_KEY_ID: biletflow-local-1
+      IDENTITY_URL: http://python:8000
+    volumes: ["./.secrets/jwt-public.pem:/run/keys/jwt-public.pem:ro"]
+    depends_on:
+      python: {condition: service_healthy}
+  mailpit:
+    image: axllent/mailpit@sha256:0790692be935ea4420d085694f7985b1f692ca6a8771ab0e0bd8ba75ac180498
+    ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]
+  prism:
+    image: stoplight/prism:5
+    profiles: ["tools"]
+    command: ["mock", "-h", "0.0.0.0", "/contracts/openapi.yaml"]
+    volumes: ["./docs:/contracts:ro"]
+    ports: ["127.0.0.1:4010:4010"]
+volumes:
+  postgres-data:
