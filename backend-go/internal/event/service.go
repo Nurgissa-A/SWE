@@ -27,9 +27,7 @@ func NewService(repo Repository) *Service {
 }
 
 // Create validates input and stores a new draft event owned by organizerID.
-// organizerID will come from the JWT claims once Aliar's auth is wired in
-// (Week 3-4, per the "authentication between Python and Go services" task);
-// for now callers pass it in directly.
+// organizerID is supplied by the authenticated HTTP boundary, never the client payload.
 func (s *Service) Create(organizerID string, in CreateEventInput) (*Event, error) {
 	if in.Title == "" {
 		return nil, ErrValidation
@@ -82,9 +80,10 @@ func (s *Service) Publish(id string) (*Event, error) {
 	if e.Title == "" || e.StartsAt.IsZero() {
 		return nil, ErrValidation
 	}
-	e.Status = StatusPublished
-	if err := s.repo.Update(e); err != nil {
+	updated := *e
+	updated.Status = StatusPublished
+	if err := s.repo.Update(&updated); err != nil {
 		return nil, err
 	}
-	return e, nil
+	return &updated, nil
 }

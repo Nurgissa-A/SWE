@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/biletflow/backend-go/internal/auth"
 )
 
 func newTestHandler() *Handler {
@@ -18,7 +20,12 @@ func newTestHandler() *Handler {
 func newTestMux(h *Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
-	return mux
+	wrapped := http.NewServeMux()
+	wrapped.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := auth.Principal{ID: "00000000-0000-4000-8000-000000000001", Role: "organizer", EmailVerified: true}
+		mux.ServeHTTP(w, r.WithContext(auth.WithPrincipal(r.Context(), p)))
+	}))
+	return wrapped
 }
 
 func TestCreateEvent_Success(t *testing.T) {

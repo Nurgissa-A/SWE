@@ -517,6 +517,11 @@ export interface paths {
                         "application/json": components["schemas"]["Event"][];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         put?: never;
@@ -562,6 +567,11 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -601,6 +611,9 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
                 /** @description Event not found */
                 404: {
                     headers: {
@@ -608,6 +621,8 @@ export interface paths {
                     };
                     content?: never;
                 };
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         put?: never;
@@ -634,6 +649,11 @@ export interface paths {
                     };
                     content?: never;
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         options?: never;
@@ -676,6 +696,9 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
                 /** @description Cannot edit a published event's core details */
                 409: {
                     headers: {
@@ -683,6 +706,8 @@ export interface paths {
                     };
                     content?: never;
                 };
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         trace?: never;
@@ -727,6 +752,10 @@ export interface paths {
                     };
                     content?: never;
                 };
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
@@ -768,6 +797,11 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
             };
         };
         delete?: never;
