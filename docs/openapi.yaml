@@ -61,6 +61,7 @@ paths:
       - identity
       description: Creates attendee only. Email is trimmed/lowercased. Extra fields including role or
         userId are rejected; email is sent through the configured adapter.
+      x-implementation-status: implemented
   /api/auth/verify-email:
     post:
       summary: Confirm an emailed verification token
@@ -100,6 +101,7 @@ paths:
       tags:
       - identity
       description: Confirm an emailed verification token.
+      x-implementation-status: implemented
   /api/auth/login:
     post:
       summary: Log in and receive a JWT
@@ -156,6 +158,7 @@ paths:
       - identity
       description: Verified active users authenticate with normalized email/password. Returns token and
         user; unverified accounts return 403. JWT role is a snapshot; current DB role/status is authoritative.
+      x-implementation-status: implemented
   /api/auth/request-password-reset:
     post:
       summary: Trigger a password reset email
@@ -195,6 +198,7 @@ paths:
       tags:
       - identity
       description: Trigger a password reset email.
+      x-implementation-status: implemented
   /api/auth/reset-password:
     post:
       summary: Complete a password reset
@@ -239,6 +243,7 @@ paths:
       tags:
       - identity
       description: Complete a password reset.
+      x-implementation-status: implemented
   /api/users/me:
     get:
       summary: Get the current user's profile
@@ -270,6 +275,7 @@ paths:
       tags:
       - identity
       description: Get the current user's profile.
+      x-implementation-status: implemented
     patch:
       summary: Update the current user's basic profile fields
       security:
@@ -313,6 +319,7 @@ paths:
       tags:
       - identity
       description: Update the current user's basic profile fields.
+      x-implementation-status: implemented
   /api/organizer-profile:
     post:
       summary: Create or complete the organizer profile for the current user
@@ -371,6 +378,7 @@ paths:
       tags:
       - identity
       description: Create or complete the organizer profile for the current user.
+      x-implementation-status: implemented
     get:
       summary: Get the current user's organizer profile
       security:
@@ -403,6 +411,7 @@ paths:
       tags:
       - identity
       description: Get the current user's organizer profile.
+      x-implementation-status: implemented
     patch:
       summary: Replace contact and simulation placeholder fields on own organizer profile
       security:
@@ -460,6 +469,7 @@ paths:
       tags:
       - identity
       description: Replace contact and simulation placeholder fields on own organizer profile.
+      x-implementation-status: implemented
   /api/events:
     post:
       summary: Create a draft event
@@ -511,10 +521,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: Create a draft event. Event ownership and visibility authorization are enforced by
         the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      x-implementation-status: implemented
     get:
       summary: List events (own drafts for organizers, published events for others)
       security:
@@ -538,11 +559,22 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: List events (own drafts for organizers, published events for others). Event ownership
         and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish
         are still pending Madi implementation.
+      x-implementation-status: implemented
   /api/events/{eventId}:
     get:
       summary: Get one event
@@ -562,10 +594,21 @@ paths:
                 $ref: '#/components/schemas/Event'
         '404':
           description: Event not found
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: Get one event. Event ownership and visibility authorization are enforced by the JWT
         integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      x-implementation-status: implemented
     patch:
       summary: Edit a draft event
       security:
@@ -611,10 +654,21 @@ paths:
                 $ref: '#/components/schemas/Event'
         '409':
           description: Cannot edit a published event's core details
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: Edit a draft event. Event ownership and visibility authorization are enforced by the
         JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      x-implementation-status: planned
     delete:
       summary: Cancel or delete a draft event
       security:
@@ -629,10 +683,21 @@ paths:
       responses:
         '204':
           description: Deleted or cancelled
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: Cancel or delete a draft event. Event ownership and visibility authorization are enforced
         by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      x-implementation-status: planned
   /api/events/{eventId}/publish:
     post:
       summary: Publish a draft event
@@ -654,10 +719,19 @@ paths:
                 $ref: '#/components/schemas/Event'
         '400':
           description: Event missing required fields for publishing
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: Publish a draft event. Event ownership and visibility authorization are enforced by
         the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      x-implementation-status: implemented
   /api/events/{eventId}/unpublish:
     post:
       summary: Move a published event back to draft
@@ -677,10 +751,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
       tags:
       - events
       description: Move a published event back to draft. Event ownership and visibility authorization
         are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      x-implementation-status: planned
 components:
   securitySchemes:
     bearerAuth:
