@@ -19,3 +19,9 @@ def install_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             {"error": {"code": "422", "message": "Request validation failed"}}, status_code=422
         )
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, exc: Exception):
+        return JSONResponse(
+            {"error": {"code": "500", "message": "Internal server error"}}, status_code=500
+        )

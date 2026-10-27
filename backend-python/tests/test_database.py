@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from alembic import command
@@ -15,9 +16,12 @@ def test_migration_and_persistence(monkeypatch):
     url = os.getenv("TEST_DATABASE_URL")
     if not url:
         pytest.skip("Set TEST_DATABASE_URL to a disposable PostgreSQL database")
+    if not make_url(url).database.endswith("_test"):
+        pytest.fail("Refusing tests outside disposable *_test database")
     monkeypatch.setenv("DATABASE_URL", url)
     config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
     command.upgrade(config, "head")
+    command.check(config)
     engine = create_engine(url)
     try:
         assert "identity_users" in inspect(engine).get_table_names()
