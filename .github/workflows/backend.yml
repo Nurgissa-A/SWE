@@ -47,3 +47,28 @@ jobs:
       - run: test -z "$(gofmt -l .)"
       - run: go vet ./...
       - run: go test -race ./... -v
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run api:lint
+      - run: npm run api:types && git diff --exit-code -- frontend/src/lib/api-types.ts
+      - name: Exercise Prism mock
+        run: |
+          npm run api:mock > /tmp/prism.log 2>&1 &
+          PRISM_PID=$!
+          trap 'kill "$PRISM_PID"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS -X POST http://localhost:4010/api/auth/register -H 'Content-Type: application/json' -d '{"email":"mock@example.com","password":"mock-password-123"}' > /tmp/mock.json; then
+              node -e 'const x=require("/tmp/mock.json");if(!x.id || !x.email)process.exit(1)'
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/prism.log
+          exit 1
