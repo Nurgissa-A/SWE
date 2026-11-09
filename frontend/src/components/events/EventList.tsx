@@ -31,7 +31,7 @@ export function EventList({ events, isLoading, error, onRetry, detailsHref, deta
   if (error) {
     const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
     const message = status === 401
-      ? 'The current API contract requires sign-in to load the event list. Sign in to continue, or ask the backend team to make published events public.'
+      ? 'Sign in to browse events.'
       : getApiErrorMessage(error);
 
     return (
