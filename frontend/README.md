@@ -1,36 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BiletFlow frontend
 
-## Getting Started
+The Next.js App Router frontend uses the OpenAPI contract in `../docs/openapi.yaml` as its API source of truth.
 
-First, run the development server:
+## Development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Start Prism from the frontend directory with `prism mock ../docs/openapi.yaml --host 0.0.0.0 --port 4010`. Then, from this directory, generate typed API definitions with `npm run generate:api` and start Next.js with `npm run dev`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The browser calls same-origin `/api/*` routes. Next.js rewrites auth, users, and organizer-profile requests to `IDENTITY_API_URL` (default `http://localhost:8000`) and event requests to `EVENTS_API_URL` (default `http://localhost:8080`). To use Prism locally, set both server-side variables to `http://localhost:4010`. For deployed environments, set them to the corresponding backend URLs; do not use `NEXT_PUBLIC_*` API URLs.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The JWT is held in memory because the current API contract returns it in the login response and does not define an httpOnly-cookie session flow. A page reload clears the session by design. A 401 from an authenticated request clears the in-memory token so protected dashboard routes return to sign-in.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The event-list operation currently declares Bearer authentication even though the product brief calls it public. Explore displays only published, public events and offers sign-in rather than bypassing the documented security requirement. The edit request schema also omits `category` and does not accept `null` for clearing capacity or an end time; the edit form reflects those limits. Event edit, delete, and unpublish are wired to their documented routes, which the OpenAPI file currently marks as planned. Forgot-password and reset-password screens use the contract's request and completion endpoints.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`/dev/components` is available only outside production builds.
