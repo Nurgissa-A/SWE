@@ -25,23 +25,20 @@ const (
 // OrganizerID references a User with role=organizer, owned by Aliar's
 // service — we only store the ID here, not the full user record.
 //
-// TicketTypeIDs is a placeholder for the future Ticket Type relation
-// (SRS 4.3); ticket types aren't modeled yet, this just reserves the
-// shape so Week 3-4 doesn't require restructuring Event.
+// Future ticket types will reference Event.ID; no ticket storage exists in Weeks 1–4.
 type Event struct {
-	ID            string     `json:"id"`
-	OrganizerID   string     `json:"organizerId"`
-	Title         string     `json:"title"`
-	Description   *string    `json:"description,omitempty"`
-	Category      *string    `json:"category,omitempty"`
-	StartsAt      time.Time  `json:"startsAt"`
-	EndsAt        *time.Time `json:"endsAt,omitempty"`
-	VenueID       *string    `json:"venueId,omitempty"`
-	Visibility    Visibility `json:"visibility"`
-	Capacity      *int       `json:"capacity,omitempty"`
-	Status        Status     `json:"status"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	TicketTypeIDs []string   `json:"-"` // reserved for future Ticket Type relation, not serialized yet
+	ID          string     `json:"id"`
+	OrganizerID string     `json:"organizerId"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description,omitempty"`
+	Category    *string    `json:"category,omitempty"`
+	StartsAt    time.Time  `json:"startsAt"`
+	EndsAt      *time.Time `json:"endsAt,omitempty"`
+	VenueID     *string    `json:"venueId,omitempty"`
+	Visibility  Visibility `json:"visibility"`
+	Capacity    *int       `json:"capacity,omitempty"`
+	Status      Status     `json:"status"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 // CreateEventInput matches the request body of POST /api/events.
@@ -54,4 +51,17 @@ type CreateEventInput struct {
 	VenueID     *string    `json:"venueId,omitempty"`
 	Visibility  Visibility `json:"visibility,omitempty"`
 	Capacity    *int       `json:"capacity,omitempty"`
+}
+
+// UpdateEventInput preserves omitted fields. JSON null is rejected at the HTTP
+// boundary; empty strings can clear optional text, as defined by the contract.
+type UpdateEventInput struct {
+	Title       *string     `json:"title,omitempty"`
+	Description *string     `json:"description,omitempty"`
+	Category    *string     `json:"category,omitempty"`
+	StartsAt    *time.Time  `json:"startsAt,omitempty"`
+	EndsAt      *time.Time  `json:"endsAt,omitempty"`
+	VenueID     *string     `json:"venueId,omitempty"`
+	Visibility  *Visibility `json:"visibility,omitempty"`
+	Capacity    *int        `json:"capacity,omitempty"`
 }

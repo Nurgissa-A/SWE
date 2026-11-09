@@ -4,7 +4,7 @@
 
 - Python FastAPI owns identity (`identity_users`, organizer profiles, action tokens and delivery receipts).
 - PostgreSQL 16 supplies persistent identity storage; Alembic applies migrations before Python readiness passes.
-- Go retains its handler/service/repository Event architecture and currently uses an in-memory repository.
+- Go retains its handler/service/repository Event architecture and persists Events through a bounded pgx PostgreSQL pool.
 - Next.js and mobile source are preserved. They are consumers, not trusted authorities for roles or organizer IDs.
 - Docker Compose exposes Python 8000, Go 8080, Mailpit 8025/1025 and optional Prism 4010 on loopback. It does not pretend that port 8000 serves Go Event routes.
 
@@ -16,13 +16,13 @@ SRS v0.3 section 9 recommends one primary backend implementation. The agreed tea
 
 ## ADR 002 — Persistence ownership
 
-Python creates only `identity_` tables in the existing database. The prefix avoids silently claiming a shared `users`/`events` namespace. Go owns its own future business migrations. Apply identity migrations first when business tables need identity references; coordinate the shared migration order before Go persistence lands. Event persistence, ticket relations and event-specific staff assignments remain Madi's responsibility. See [ERD](erd.md).
+Python creates only `identity_` tables in the existing database. The prefix avoids silently claiming a shared `users`/`events` namespace. Go now owns the separate `events` schema and checksum migration ledger. Compose runs Python migrations, then Go migrations, then starts Go. Events reference the unique organizer-profile user UUID with a same-database FK. Tickets and event-specific staff assignments remain future work. See [ERD](erd.md).
 
 ## ADR 003 — RS256 and live identity
 
 Python alone holds the RSA private key. Tokens have fixed RS256, `kid`, `iss`, `aud`, UUID `sub`/`jti`, `iat`, `nbf`, `exp`, role snapshot and integer `ver`. TTL defaults to 15 minutes. Public key PEM and JWKS contain no signing secret. Python loads and validates the matching key pair at startup. Replace keys through the deployment secret mechanism, not Git.
 
-Every protected Python request looks up the current user in PostgreSQL and rejects inactive/deleted/unverified users or changed token versions. RBAC uses the current database role, not a stale role claim. Organizer onboarding promotes a verified attendee to organizer for their own profile; administrator roles are never self-assigned. Operator role changes/disabling and password resets invalidate existing tokens by incrementing `token_version`. Go integration must verify the signature independently and confirm current identity through `/api/users/me` before authorization; identity failure must fail closed.
+Every protected Python request looks up the current user in PostgreSQL and rejects inactive/deleted/unverified users or changed token versions. RBAC uses the current database role, not a stale role claim. Organizer onboarding promotes a verified attendee to organizer for their own profile; administrator roles are never self-assigned. Operator role changes/disabling and password resets invalidate existing tokens by incrementing `token_version`. Go verifies the signature independently and confirms current identity through `/api/users/me` before service-level authorization; identity failure fails closed.
 
 Web clients use the existing `token` response field; secure client-side storage/session design remains the frontend owner's responsibility. No refresh/logout endpoint is added to the contract: client sign-out clears its bearer token; operator/reset revocation is immediate via live identity, otherwise bearer tokens expire within the configured TTL.
 
@@ -33,3 +33,15 @@ The injectable SMTP adapter supports STARTTLS and credentials. Mailpit is a loca
 ## Threat boundary and deployment
 
 No password, bearer token, raw action token or request body is logged. Request validation errors omit input values. Argon2id hashes passwords. CORS is restricted to configured origins; hosts are allow-listed. Internal HTTP is restricted to the private Compose network for the demo; put both services behind trusted HTTPS ingress outside localhost. Key generation creates ignored files and a random local DB password. Restrict operator/DB/key access. Production SMTP/TLS, infrastructure encryption, distributed rate limiting and audit/monitoring requirements need deployment-specific configuration; none are presented as already operated production controls.
+
+
+## ADR 005 — Event mutation boundary
+
+Go repository operations propagate request contexts and cap SQL/lock waits at
+three seconds. PATCH and publication use a single transaction and row lock;
+validation or permission failure rolls back. Publication requires the current
+contract's venue UUID for physical events, without inventing a venue catalog.
+A concurrent second publication returns 409. PostgreSQL enforces status,
+visibility, capacity, date and published-venue constraints too. List visibility
+is applied in SQL with owner/public indexes. No memory fallback masks database
+failure. See [Go service](../backend-go/README.md) for API and migration details.

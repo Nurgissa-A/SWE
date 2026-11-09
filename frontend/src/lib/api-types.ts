@@ -495,7 +495,7 @@ export interface paths {
         };
         /**
          * List events (own drafts for organizers, published events for others)
-         * @description List events (own drafts for organizers, published events for others). Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Authenticated list returns own events plus public published events, ordered by createdAt descending then id. No pagination is defined in this contract.
          */
         get: {
             parameters: {
@@ -527,7 +527,7 @@ export interface paths {
         put?: never;
         /**
          * Create a draft event
-         * @description Create a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Create an organizer-owned draft; title and startsAt are required. Optional venueId can be added with PATCH before publication.
          */
         post: {
             parameters: {
@@ -544,7 +544,10 @@ export interface paths {
                         category?: string | null;
                         /** Format: date-time */
                         startsAt: string;
-                        /** Format: date-time */
+                        /**
+                         * Format: date-time
+                         * @description When supplied, must be after startsAt.
+                         */
                         endsAt?: string | null;
                         /** Format: uuid */
                         venueId?: string | null;
@@ -589,7 +592,7 @@ export interface paths {
         };
         /**
          * Get one event
-         * @description Get one event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Owner can preview any own event. Other callers can read public or unlisted published events; all other events return 404. Anonymous detail access is allowed; invalid supplied JWTs are rejected.
          */
         get: {
             parameters: {
@@ -614,13 +617,7 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
-                /** @description Event not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                404: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -660,7 +657,7 @@ export interface paths {
         head?: never;
         /**
          * Edit a draft event
-         * @description Edit a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Update own draft atomically; omitted fields remain unchanged. Empty objects, JSON null values and unknown fields return 400. Published/cancelled events return 409.
          */
         patch: {
             parameters: {
@@ -678,11 +675,17 @@ export interface paths {
                         description?: string;
                         /** Format: date-time */
                         startsAt?: string;
-                        /** Format: date-time */
+                        /**
+                         * Format: date-time
+                         * @description When supplied, must be after startsAt.
+                         */
                         endsAt?: string;
                         capacity?: number;
                         /** @enum {string} */
                         visibility?: "public" | "unlisted" | "private";
+                        category?: string;
+                        /** Format: uuid */
+                        venueId?: string;
                     };
                 };
             };
@@ -699,13 +702,8 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
-                /** @description Cannot edit a published event's core details */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -723,7 +721,7 @@ export interface paths {
         put?: never;
         /**
          * Publish a draft event
-         * @description Publish a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Atomically publish own draft. Requires a nonblank title, startsAt and nonzero venueId for a physical event. Invalid fields return 400; any non-draft state, including repeated publication, returns 409.
          */
         post: {
             parameters: {
@@ -745,15 +743,11 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
-                /** @description Event missing required fields for publishing */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -838,25 +832,28 @@ export interface components {
         };
         Event: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: uuid */
-            organizerId?: string;
-            title?: string;
+            organizerId: string;
+            title: string;
             description?: string | null;
             category?: string | null;
             /** Format: date-time */
-            startsAt?: string;
-            /** Format: date-time */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description When supplied, must be after startsAt.
+             */
             endsAt?: string | null;
             /** Format: uuid */
             venueId?: string | null;
             /** @enum {string} */
-            visibility?: "public" | "unlisted" | "private";
+            visibility: "public" | "unlisted" | "private";
             capacity?: number | null;
             /** @enum {string} */
-            status?: "draft" | "published" | "cancelled";
+            status: "draft" | "published" | "cancelled";
             /** Format: date-time */
-            createdAt?: string;
+            createdAt: string;
         };
         Error: {
             error: {

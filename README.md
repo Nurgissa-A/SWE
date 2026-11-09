@@ -50,6 +50,6 @@ Do not push unfinished work directly to `main`.
 
 ## Local backend environment
 
-See [Python backend setup](backend-python/README.md) for Docker Compose, PostgreSQL migrations, health checks and testing. Existing Go and frontend development commands remain available.
+See [Python backend setup](backend-python/README.md) for Docker Compose, PostgreSQL migrations, health checks and testing. See [Go Events setup](backend-go/README.md) for the five persistent Event routes, Go migrations and PostgreSQL/JWT integration tests. Frontend source is preserved.
 
 JWT service integration and review boundaries are documented in [Python-Go authentication](docs/python-go-auth.md).
