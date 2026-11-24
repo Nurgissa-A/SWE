@@ -18,8 +18,8 @@ export type EventItem = {
   title: string;
   date: string;
   venue: string;
-  registered: number;
-  checkedIn: number;
+  registered: number | null; // null = not available from the backend yet
+  checkedIn: number | null;
 };
 
 type TicketStatus = 'valid' | 'checked_in' | 'cancelled' | 'refunded';
@@ -132,7 +132,7 @@ export async function checkIn(code: string): Promise<void> {
   t.status = 'checked_in';
   t.checkedInAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const e = events.find((ev) => ev.id === t.eventId);
-  if (e) e.checkedIn += 1;
+  if (e && e.checkedIn !== null) e.checkedIn += 1;
 }
 
 export async function undoCheckIn(code: string): Promise<void> {
@@ -142,7 +142,7 @@ export async function undoCheckIn(code: string): Promise<void> {
   t.status = 'valid';
   t.checkedInAt = undefined;
   const e = events.find((ev) => ev.id === t.eventId);
-  if (e && e.checkedIn > 0) e.checkedIn -= 1;
+  if (e && e.checkedIn !== null && e.checkedIn > 0) e.checkedIn -= 1;
 }
 
 export async function searchAttendees(eventId: string, query: string): Promise<AttendeeItem[]> {

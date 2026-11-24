@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
-import { getEvent, EventItem } from '../../api/mock';
+import { getEvent, EventItem } from '../../api';
 import { handleApiError } from '../../api/errors';
 import ErrorView from '../../components/ErrorView';
 
@@ -58,11 +58,11 @@ export default function EventDashboardScreen() {
 
       <View style={styles.stats}>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{event.registered}</Text>
+          <Text style={styles.statNumber}>{event.registered ?? '—'}</Text>
           <Text style={styles.statLabel}>Registered</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{event.checkedIn}</Text>
+          <Text style={styles.statNumber}>{event.checkedIn ?? '—'}</Text>
           <Text style={styles.statLabel}>Checked in</Text>
         </View>
       </View>

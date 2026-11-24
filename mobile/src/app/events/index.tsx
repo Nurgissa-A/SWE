@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { getMyEvents, EventItem } from '../../api/mock';
+import { getMyEvents, EventItem } from '../../api';
 import { loadSession, clearSession } from '../../api/session';
 import { handleApiError } from '../../api/errors';
 import ErrorView from '../../components/ErrorView';

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { searchAttendees, AttendeeItem } from '../api/mock';
+import { searchAttendees, AttendeeItem } from '../api';
 import { handleApiError } from '../api/errors';
 
 const STATUS_LOOK: Record<string, { label: string; color: string }> = {

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { login } from '../api/mock';
-import { saveSession, loadSession, isStaff } from '../api/session';
-import { friendlyMessage } from '../api/errors';
+import { login, getMe } from '../api';
+import { USE_REAL_BACKEND } from '../api/config';
+import { saveSession, loadSession, clearSession, isStaff } from '../api/session';
+import { ApiError, friendlyMessage } from '../api/errors';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -14,13 +15,30 @@ export default function LoginScreen() {
 
   // If already signed in from last time, skip the login screen
   useEffect(() => {
-    loadSession().then((session) => {
-      if (session && isStaff(session.user)) {
-        router.replace('/events');
-      } else {
+    async function checkSaved() {
+      const session = await loadSession();
+      if (!session) {
         setCheckingSaved(false);
+        return;
       }
-    });
+      try {
+        const user = await getMe(); // is the saved login still valid?
+        if (isStaff(user)) {
+          router.replace('/events');
+          return;
+        }
+        await clearSession();
+      } catch (err) {
+        if (err instanceof ApiError && err.code === 'network') {
+          // No internet right now: keep the login, the next screen will show the error
+          router.replace('/events');
+          return;
+        }
+        await clearSession(); // expired or invalid login
+      }
+      setCheckingSaved(false);
+    }
+    checkSaved();
   }, []);
 
   async function handleLogin() {
@@ -84,7 +102,9 @@ export default function LoginScreen() {
         {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
       </Pressable>
 
-      <Text style={styles.demo}>Demo: admin@biletflow.kz / admin123</Text>
+      <Text style={styles.demo}>
+        {USE_REAL_BACKEND ? 'Connected to the BiletFlow backend' : 'Demo data · admin@biletflow.kz / admin123'}
+      </Text>
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { verifyTicket, checkIn, undoCheckIn, VerifyResult } from '../api/mock';
+import { verifyTicket, checkIn, undoCheckIn, VerifyResult } from '../api';
 import { handleApiError } from '../api/errors';
 import ErrorView from '../components/ErrorView';
 
