@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * Register a new user
-         * @description Creates attendee only. Email is trimmed/lowercased. Extra fields including role or userId are rejected; email is sent through the configured adapter.
+         * @description Creates attendee and encrypted durable verification job atomically. SMTP failure leaves a visible retryable job, not a lost account. Delivery is asynchronous; normal response remains 201.
          */
         post: {
             parameters: {
@@ -49,6 +49,7 @@ export interface paths {
                 409: components["responses"]["APIError"];
                 413: components["responses"]["APIError"];
                 422: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -158,6 +159,7 @@ export interface paths {
                 409: components["responses"]["APIError"];
                 413: components["responses"]["APIError"];
                 422: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -210,6 +212,7 @@ export interface paths {
                 409: components["responses"]["APIError"];
                 413: components["responses"]["APIError"];
                 422: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -810,6 +813,1433 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Verification
+         * @description Resend Verification. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["resend_verification_api_auth_resend_verification_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description Logout. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["logout_api_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cases
+         * @description List Cases. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["list_cases_api_support_cases_get"];
+        put?: never;
+        /**
+         * Create Case
+         * @description Create Case. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["create_case_api_support_cases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Case
+         * @description Get Case. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["get_case_api_support_cases__case_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change Case
+         * @description Change Case. Python-owned implementation with live identity and scoped permissions.
+         */
+        patch: operations["change_case_api_support_cases__case_id__patch"];
+        trace?: never;
+    };
+    "/api/support/cases/{case_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Messages
+         * @description Messages. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["messages_api_support_cases__case_id__messages_get"];
+        put?: never;
+        /**
+         * Reply
+         * @description Reply. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["reply_api_support_cases__case_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/cases/{case_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Case History
+         * @description Case History. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["case_history_api_support_cases__case_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notifications
+         * @description Notifications. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["notifications_api_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Read Notification
+         * @description Read Notification. Python-owned implementation with live identity and scoped permissions.
+         */
+        patch: operations["read_notification_api_notifications__notification_id__read_patch"];
+        trace?: never;
+    };
+    "/internal/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Notification
+         * @description Ingest Notification. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["ingest_notification_internal_notifications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/organizer-profiles/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Internal Profile
+         * @description Internal Profile. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["internal_profile_internal_organizer_profiles__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/platform-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Internal Settings
+         * @description Internal Settings. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["internal_settings_internal_platform_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * User Search
+         * @description User Search. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["user_search_api_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Suspend
+         * @description Suspend. Python-owned implementation with live identity and scoped permissions.
+         */
+        patch: operations["suspend_api_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/admin/platform-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings
+         * @description Get Settings. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["get_settings_api_admin_platform_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set Settings
+         * @description Set Settings. Python-owned implementation with live identity and scoped permissions.
+         */
+        patch: operations["set_settings_api_admin_platform_settings_patch"];
+        trace?: never;
+    };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Audit
+         * @description Admin Audit. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["admin_audit_api_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/notification-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Job Status
+         * @description Job Status. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["job_status_api_admin_notification_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/notification-jobs/{job_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Job
+         * @description Retry Job. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["retry_job_api_admin_notification_jobs__job_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/business/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Business Search
+         * @description Business Search. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["business_search_api_admin_business__resource__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/ticket-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List event ticket types
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TicketType"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Create owned event ticket type
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TicketTypeInput"];
+                };
+            };
+            responses: {
+                /** @description Successful business operation */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TicketType"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/ticket-types/{ticketTypeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update owned event ticket type
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                    ticketTypeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TicketTypeInput"];
+                };
+            };
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TicketType"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List current attendee orders
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Reserve free or simulated paid order transactionally
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OrderInput"];
+                };
+            };
+            responses: {
+                /** @description Successful business operation */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read authorized canonical order
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/simulate-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm simulated payment without real funds
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SimulatedOutcome"];
+                };
+            };
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel authorized free order and invalidate tickets
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue authorized full simulated refund
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{ticketId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read authorized canonical admission ticket
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ticketId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdmissionTicket"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{ticketId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download own or authorized staff ticket PDF
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ticketId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": string;
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/activation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read own event activation checklist and fee
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaidActivation"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Activate simulated paid sales for own event
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SimulatedOutcome"];
+                };
+            };
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaidActivation"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/staff/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve current event-scoped staff permissions
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventStaffPermission"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign event-scoped support or check-in staff
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        userId: string;
+                        canSupport: boolean;
+                        canCheckIn: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventStaffPermission"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search moderated business events
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BusinessReportPage"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search moderated business orders
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BusinessReportPage"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search moderated business payments
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BusinessReportPage"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search moderated business refunds
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BusinessReportPage"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/activations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search moderated business activations
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BusinessReportPage"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/events/{eventId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend event sales and admission
+         * @description Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python must not implement or mutate these business entities.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful business operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Event"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/business/events/{event_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend Event
+         * @description Suspend Event. Python-owned implementation with live identity and scoped permissions.
+         */
+        post: operations["suspend_event_api_admin_business_events__event_id__suspend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-images/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Image
+         * @description Get Image. Python-owned implementation with live identity and scoped permissions.
+         */
+        get: operations["get_image_api_event_images__event_id__get"];
+        /**
+         * Put Image
+         * @description Put Image. Python-owned implementation with live identity and scoped permissions.
+         */
+        put: operations["put_image_api_event_images__event_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -864,6 +2294,550 @@ export interface components {
                 message: string;
             };
         };
+        /** AdminUserResponse */
+        AdminUserResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            role: components["schemas"]["Role"];
+            /** Displayname */
+            displayName: string | null;
+            /** Emailverified */
+            emailVerified: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Isactive */
+            isActive: boolean;
+        };
+        /** AuditPage */
+        AuditPage: {
+            /** Items */
+            items: components["schemas"]["AuditResponse"][];
+            /** Nextcursor */
+            nextCursor: number;
+        };
+        /** AuditResponse */
+        AuditResponse: {
+            /** Id */
+            id: number;
+            /**
+             * Actorid
+             * Format: uuid
+             */
+            actorId: string | null;
+            /**
+             * Actorkind
+             * @enum {string}
+             */
+            actorKind: "account" | "operator";
+            /** Action */
+            action: string;
+            /** Targetid */
+            targetId: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /** BusinessNotification */
+        BusinessNotification: {
+            /**
+             * Sourceid
+             * Format: uuid
+             */
+            sourceId: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "order_confirmation" | "ticket_delivery" | "payment_failed" | "event_updated" | "event_cancelled" | "refund_completed" | "payout_status";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string | null;
+            /**
+             * Orderid
+             * Format: uuid
+             */
+            orderId?: string | null;
+            /**
+             * Ticketid
+             * Format: uuid
+             */
+            ticketId?: string | null;
+            /**
+             * Simulation
+             * @default true
+             * @enum {boolean}
+             */
+            simulation: true;
+        };
+        /** CaseChange */
+        CaseChange: {
+            /**
+             * Status
+             * @enum {string|null}
+             */
+            status?: "open" | "in_progress" | "waiting_for_customer" | "resolved" | null;
+            /**
+             * Assigneeid
+             * Format: uuid
+             */
+            assigneeId?: string | null;
+            /** Escalated */
+            escalated?: boolean | null;
+        };
+        /** CaseInput */
+        CaseInput: {
+            /** Subject */
+            subject: string;
+            /** Message */
+            message: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ticket_delivery" | "payment" | "refund" | "seating" | "event_information" | "check_in" | "account" | "technical";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string | null;
+            /**
+             * Orderid
+             * Format: uuid
+             */
+            orderId?: string | null;
+            /**
+             * Ticketid
+             * Format: uuid
+             */
+            ticketId?: string | null;
+        };
+        /** CasePage */
+        CasePage: {
+            /** Items */
+            items: components["schemas"]["CaseResponse"][];
+            /**
+             * Nextcursor
+             * Format: uuid
+             */
+            nextCursor: string | null;
+        };
+        /** CaseResponse */
+        CaseResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Requesterid
+             * Format: uuid
+             */
+            requesterId: string;
+            /**
+             * Organizerid
+             * Format: uuid
+             */
+            organizerId: string | null;
+            /**
+             * Assigneeid
+             * Format: uuid
+             */
+            assigneeId: string | null;
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId: string | null;
+            /**
+             * Orderid
+             * Format: uuid
+             */
+            orderId: string | null;
+            /**
+             * Ticketid
+             * Format: uuid
+             */
+            ticketId: string | null;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "event" | "platform";
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ticket_delivery" | "payment" | "refund" | "seating" | "event_information" | "check_in" | "account" | "technical";
+            /** Subject */
+            subject: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "in_progress" | "waiting_for_customer" | "resolved";
+            /** Sequence */
+            sequence: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** EnqueuedResponse */
+        EnqueuedResponse: {
+            /** Id */
+            id: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "sending" | "delivered" | "failed" | "skipped";
+        };
+        /** JobPage */
+        JobPage: {
+            /** Items */
+            items: components["schemas"]["JobResponse"][];
+            /** Nextcursor */
+            nextCursor: number;
+        };
+        /** JobResponse */
+        JobResponse: {
+            /** Id */
+            id: number;
+            /** Source */
+            source: string;
+            /** Template */
+            template: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "sending" | "delivered" | "failed" | "skipped";
+            /** Attempts */
+            attempts: number;
+            /** Failurecode */
+            failureCode: string | null;
+            /**
+             * Nextattemptat
+             * Format: date-time
+             */
+            nextAttemptAt: string;
+        };
+        /** MessageInput */
+        MessageInput: {
+            /** Body */
+            body: string;
+        };
+        /** MessagePage */
+        MessagePage: {
+            /** Items */
+            items: components["schemas"]["MessageResponse"][];
+            /** Nextcursor */
+            nextCursor: number;
+        };
+        /** MessageResponse */
+        MessageResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Caseid
+             * Format: uuid
+             */
+            caseId: string;
+            /**
+             * Authorid
+             * Format: uuid
+             */
+            authorId: string;
+            /** Sequence */
+            sequence: number;
+            /** Body */
+            body: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /** NotificationPage */
+        NotificationPage: {
+            /** Items */
+            items: components["schemas"]["NotificationResponse"][];
+            /** Nextcursor */
+            nextCursor: number;
+        };
+        /** NotificationResponse */
+        NotificationResponse: {
+            /** Id */
+            id: number;
+            /** Template */
+            template: string;
+            /** Title */
+            title: string;
+            /** Context */
+            context: {
+                [key: string]: string;
+            };
+            /** Link */
+            link: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "sending" | "delivered" | "failed" | "skipped";
+            /** Attempts */
+            attempts: number;
+            /**
+             * Readat
+             * Format: date-time
+             */
+            readAt: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /** ResetRequest */
+        ResetRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /**
+         * Role
+         * @enum {string}
+         */
+        Role: "attendee" | "organizer" | "event_admin" | "platform_admin";
+        /** SettingsInput */
+        SettingsInput: {
+            /** Activationfeeminor */
+            activationFeeMinor: number;
+            /** Expectedversion */
+            expectedVersion: number;
+        };
+        /** SettingsResponse */
+        SettingsResponse: {
+            /** Activationfeeminor */
+            activationFeeMinor: number;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "KZT";
+            /** Version */
+            version: number;
+            /**
+             * Simulationonly
+             * @enum {boolean}
+             */
+            simulationOnly: true;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** SupportActionResponse */
+        SupportActionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Actorid
+             * Format: uuid
+             */
+            actorId: string;
+            /** Action */
+            action: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /** SuspensionInput */
+        SuspensionInput: {
+            /** Isactive */
+            isActive: boolean;
+        };
+        /** UserPage */
+        UserPage: {
+            /** Items */
+            items: components["schemas"]["AdminUserResponse"][];
+            /**
+             * Nextcursor
+             * Format: uuid
+             */
+            nextCursor: string | null;
+        };
+        TicketType: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            name: string;
+            /** @enum {string} */
+            kind: "free" | "paid";
+            priceMinor: number;
+            /** @enum {string} */
+            currency: "KZT";
+            capacity: number;
+            remaining: number;
+        };
+        TicketTypeInput: {
+            name: string;
+            /** @enum {string} */
+            kind: "free" | "paid";
+            priceMinor: number;
+            capacity: number;
+        };
+        OrderLine: {
+            /** Format: uuid */
+            ticketTypeId: string;
+            quantity: number;
+        };
+        OrderInput: {
+            /** Format: uuid */
+            eventId: string;
+            items: components["schemas"]["OrderLine"][];
+            attendeeName: string;
+            promoCode?: string;
+        };
+        Order: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            /** Format: uuid */
+            userId: string;
+            /** @enum {string} */
+            status: "reserved" | "payment_pending" | "confirmed" | "payment_failed" | "expired" | "cancelled" | "refunded";
+            totalMinor: number;
+            /** @enum {string} */
+            currency: "KZT";
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {boolean} */
+            simulationOnly: true;
+            /** Format: uuid */
+            organizerId: string;
+        };
+        AdmissionTicket: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            /** Format: uuid */
+            orderId: string;
+            /** Format: uuid */
+            attendeeId: string;
+            /** Format: uuid */
+            ticketTypeId: string;
+            /** @enum {string} */
+            status: "valid" | "checked_in" | "cancelled" | "refunded";
+            /** @description Tamper-resistant admission token; never accepted as a campaign token or logged. */
+            admissionToken?: string;
+            /** Format: uuid */
+            organizerId: string;
+        };
+        EventStaffPermission: {
+            /** Format: uuid */
+            eventId: string;
+            /** Format: uuid */
+            userId: string;
+            canSupport: boolean;
+            canCheckIn: boolean;
+        };
+        PaidActivation: {
+            /** Format: uuid */
+            eventId: string;
+            /** @enum {string} */
+            status: "inactive" | "active" | "suspended";
+            feeMinor: number;
+            feeVersion: number;
+            /** @enum {string} */
+            currency: "KZT";
+            /** @enum {boolean} */
+            simulationOnly: true;
+        };
+        SimulatedOutcome: {
+            /** @enum {boolean} */
+            simulation: true;
+            /** @enum {string} */
+            outcome: "success" | "failed";
+        };
+        BusinessReportPage: {
+            items: Record<string, never>[];
+            nextCursor: string | null;
+        };
+        /** SupportHistoryPage */
+        SupportHistoryPage: {
+            /** Items */
+            items: components["schemas"]["SupportActionResponse"][];
+            /**
+             * Nextcursor
+             * Format: uuid
+             */
+            nextCursor: string | null;
+        };
+        /** ImageResponse */
+        ImageResponse: {
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId: string;
+            /** Imageurl */
+            imageUrl: string;
+            /** Sha256 */
+            sha256: string;
+            /** Width */
+            width: number;
+            /** Height */
+            height: number;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
     };
     responses: {
         /** @description Request failed; no credential or request input echoed */
@@ -882,4 +2856,861 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    resend_verification_api_auth_resend_verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    logout_api_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    list_cases_api_support_cases_get: {
+        parameters: {
+            query?: {
+                eventId?: string | null;
+                after?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CasePage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    create_case_api_support_cases_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseInput"];
+            };
+        };
+        responses: {
+            /** @description Replay of the same idempotent request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseResponse"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    get_case_api_support_cases__case_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    change_case_api_support_cases__case_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    messages_api_support_cases__case_id__messages_get: {
+        parameters: {
+            query?: {
+                after?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagePage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    reply_api_support_cases__case_id__messages_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Replay of the same idempotent request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    case_history_api_support_cases__case_id__history_get: {
+        parameters: {
+            query?: {
+                after?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportHistoryPage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    notifications_api_notifications_get: {
+        parameters: {
+            query?: {
+                after?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    read_notification_api_notifications__notification_id__read_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    ingest_notification_internal_notifications_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessNotification"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnqueuedResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    internal_profile_internal_organizer_profiles__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    internal_settings_internal_platform_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    user_search_api_admin_users_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                after?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    suspend_api_admin_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspensionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    get_settings_api_admin_platform_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    set_settings_api_admin_platform_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    admin_audit_api_admin_audit_get: {
+        parameters: {
+            query?: {
+                after?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    job_status_api_admin_notification_jobs_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                after?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobPage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    retry_job_api_admin_notification_jobs__job_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnqueuedResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    business_search_api_admin_business__resource__get: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path: {
+                resource: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    suspend_event_api_admin_business_events__event_id__suspend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    get_image_api_event_images__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string;
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    put_image_api_event_images__event_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/png": string;
+                "image/jpeg": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageResponse"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            401: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            422: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+}

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from alembic.config import Config
+from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
@@ -31,12 +32,22 @@ def key_files(tmp_path_factory):
             serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
         )
     )
+    (folder / "notification.key").write_bytes(Fernet.generate_key())
+    (folder / "service-token").write_text("controlled-test-service-token-at-least-32-characters")
     return private, public
 
 
 @pytest.fixture
-def settings(key_files):
-    return Settings(jwt_private_key_file=key_files[0], jwt_public_key_file=key_files[1])
+def settings(key_files, tmp_path):
+    return Settings(
+        jwt_private_key_file=key_files[0],
+        jwt_public_key_file=key_files[1],
+        notification_key_file=key_files[0].parent / "notification.key",
+        service_token_file=key_files[0].parent / "service-token",
+        auth_rate_limit_enabled=False,
+        notification_eager_delivery=True,
+        image_storage_dir=tmp_path / "images",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -64,8 +75,11 @@ class MemoryMailer:
     def __init__(self):
         self.messages = []
 
-    def send(self, recipient, purpose, token):
+    def send(self, recipient, purpose, token, *, message_id=None):
         self.messages.append((recipient, purpose, token))
+
+    def send_notification(self, recipient, subject, body, *, message_id):
+        self.messages.append((recipient, subject, body))
 
 
 @pytest.fixture
@@ -73,6 +87,7 @@ def ctx(settings, database_url):
     engine = create_engine(database_url)
     with engine.begin() as conn:
         conn.execute(text("TRUNCATE identity_users CASCADE"))
+        conn.execute(text("TRUNCATE identity_rate_limits"))
     engine.dispose()
     app = create_app(settings.model_copy(update={"database_url": database_url}))
     mailer = MemoryMailer()

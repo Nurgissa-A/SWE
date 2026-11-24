@@ -1,4 +1,3 @@
-import smtplib
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
@@ -14,17 +13,21 @@ from app.core.security import (
     password_hasher,
     verify_password,
 )
-from app.models.identity import ActionToken, EmailDelivery, Role, User
+from app.models.identity import ActionToken, Role, User
 from app.repositories.identity import IdentityRepository
 from app.services.email import EmailSender
+from app.services.notifications import Notifications
 
 
 class IdentityService:
     def __init__(self, session: Session, settings: Settings, mailer: EmailSender):
         self.session, self.settings, self.mailer = session, settings, mailer
         self.repo = IdentityRepository(session)
+        self.notifications = Notifications(
+            settings.notification_key_file.read_bytes(), settings.frontend_url
+        )
 
-    def send_action(self, user: User, purpose: str, minutes: int) -> None:
+    def send_action(self, user: User, purpose: str, minutes: int):
         raw, digest = opaque_token()
         token = ActionToken(
             user_id=user.id,
@@ -34,14 +37,18 @@ class IdentityService:
         )
         self.session.add(token)
         self.session.flush()
-        # Delivery failure rolls back registration/reset. No usable raw token is stored in DB/logs.
-        try:
-            self.mailer.send(user.email, purpose, raw)
-        except (OSError, smtplib.SMTPException):
-            self.session.rollback()
-            raise HTTPException(503, "Email delivery unavailable; retry later") from None
-        self.session.add(
-            EmailDelivery(action_token_id=token.id, attempts=1, sent_at=datetime.now(UTC))
+        return self.notifications.enqueue(
+            self.session, user.id, purpose, "identity", token.id, {"token": raw}, token.id
+        )
+
+    def deliver(self, job_id: int) -> None:
+        from sqlalchemy.orm import sessionmaker
+
+        self.notifications.drain(
+            sessionmaker(bind=self.session.get_bind(), expire_on_commit=False),
+            self.mailer,
+            limit=1,
+            only_id=job_id,
         )
 
     def register(self, email: str, password: str) -> User:
@@ -54,8 +61,10 @@ class IdentityService:
         except IntegrityError:
             self.session.rollback()
             raise HTTPException(409, "Email already registered") from None
-        self.send_action(user, "verify_email", self.settings.verification_token_minutes)
+        job = self.send_action(user, "verify_email", self.settings.verification_token_minutes)
         self.session.commit()
+        if self.settings.notification_eager_delivery:
+            self.deliver(job.id)
         return user
 
     def consume(self, raw: str, purpose: str) -> User:
@@ -104,8 +113,10 @@ class IdentityService:
     def request_reset(self, email: str) -> None:
         user = self.repo.by_email(email, for_update=True)
         if user and user.is_active:
-            self.send_action(user, "reset_password", self.settings.reset_token_minutes)
+            job = self.send_action(user, "reset_password", self.settings.reset_token_minutes)
             self.session.commit()
+            if self.settings.notification_eager_delivery:
+                self.deliver(job.id)
 
     def reset(self, raw: str, password: str) -> None:
         user = self.consume(raw, "reset_password")

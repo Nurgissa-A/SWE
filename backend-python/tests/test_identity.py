@@ -263,17 +263,26 @@ def test_password_reset_and_revocation(ctx):
     )
 
 
-def test_mail_failure_rolls_back_registration(ctx):
-    def fail(*args):
+def test_mail_failure_keeps_retryable_registration(ctx):
+    def fail(*args, **kwargs):
         raise OSError("provider unavailable")
 
     ctx[1].state.mailer.send = fail
     response = ctx[0].post(
         "/api/auth/register", json={"email": "mail@example.com", "password": "safe-password-123"}
     )
-    assert response.status_code == 503
+    assert response.status_code == 201
+    from app.models.platform import Notification
+
     with ctx[1].state.session_factory() as session:
-        assert session.scalar(select(User)) is None
+        assert session.scalar(select(User)) is not None
+        job = session.scalar(select(Notification))
+        assert (
+            job.state == "pending"
+            and job.attempts == 1
+            and job.failure_code == "delivery_unavailable"
+        )
+        assert "mail@example.com" not in job.encrypted_payload
 
 
 def test_jwks_public_only(ctx):

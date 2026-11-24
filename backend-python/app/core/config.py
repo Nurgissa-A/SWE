@@ -8,6 +8,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     environment: str = "development"
+    notification_key_file: Path = Path(".secrets/notification.key")
+    service_token_file: Path = Path(".secrets/service-token")
+    image_storage_dir: Path = Path(".storage/event-images")
+    business_url: str = "http://localhost:8080"
+    notification_eager_delivery: bool = False
+    auth_rate_limit_enabled: bool = True
+    auth_rate_limit_per_email: int = Field(default=10, ge=1, le=100)
+    auth_rate_limit_per_ip: int = Field(default=60, ge=1, le=1000)
     database_url: str = "postgresql+psycopg://localhost/biletflow"
     db_pool_timeout_seconds: int = Field(default=5, ge=1, le=60)
     db_connect_timeout_seconds: int = Field(default=5, ge=1, le=60)

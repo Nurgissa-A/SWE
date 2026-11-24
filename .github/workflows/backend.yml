@@ -32,6 +32,7 @@ jobs:
       - run: python -m pip install --no-deps --no-build-isolation -e backend-python
       - run: ruff check backend-python scripts
       - run: ruff format --check backend-python scripts
+      - run: python scripts/sync_python_contract.py && git diff --exit-code -- docs/openapi.yaml
       - run: pytest backend-python/tests -v
   go:
     runs-on: ubuntu-latest

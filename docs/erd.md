@@ -49,3 +49,17 @@ erDiagram
 A user has one coarse platform role as in the original API schema. Event Admin is not Platform Admin and receives no global event-management permission. Madi must implement scoped staff assignments for check-in later. Go stores immutable Python user UUIDs as references, never copies credentials or writes identity tables. Future Event migrations must select a compatible UUID representation: today's Go Event IDs are 32-character hexadecimal strings, a pre-existing mismatch with OpenAPI's UUID format that this identity PR does not silently rewrite.
 
 Constraints: unique normalized email, one profile per user, restricted deletion of a user with a profile, indexed action-token owner/expiry, unique hashed token, valid role/purpose and nonnegative token version. Timestamps are timezone-aware UTC. Verification/reset tokens are row-locked and consumed in the same transaction as the user update, preventing concurrent reuse.
+
+
+## Python platform and session extensions
+
+Migrations 0002–0005 add `platform_notifications`, `platform_support_cases`,
+`platform_support_messages`, `platform_support_actions`, `platform_settings`,
+`platform_admin_audit`, `platform_event_images`, `identity_rate_limits` and `identity_revoked_tokens`.
+Support IDs reference Go entities through authenticated API validation, not
+invented local business tables. Notification source UUID uniqueness and payload
+hashes protect retries; encrypted payloads are separate from hashed action tokens.
+User references use existing Python UUIDs. Messages/history are retained; scoped
+runtime privileges permit append rather than edit/delete. Operator audit has
+nullable actor_id plus explicit actor_kind, avoiding a fake administrator user.
+Only migrations can create tables; app/worker/Go credentials have distinct grants.

@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from alembic import context
 from app.core.config import Settings
 from app.db.session import Base
-from app.models import identity  # noqa: F401
+from app.models import identity, platform  # noqa: F401
 
 config = context.config
 

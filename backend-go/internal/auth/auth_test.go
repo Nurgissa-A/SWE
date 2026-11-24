@@ -199,3 +199,32 @@ func TestVerifierConfigurationRejectsBadKeysAndURLs(t *testing.T) {
 		}
 	}
 }
+
+func TestRequestIDFollowsLiveIdentityCall(t *testing.T) {
+	key, public := testKey(t)
+	seen := ""
+	live := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = r.Header.Get("X-Request-ID")
+		_ = json.NewEncoder(w).Encode(Principal{ID: testUser, Role: "organizer", EmailVerified: true})
+	}))
+	defer live.Close()
+	verifier, err := NewVerifier(public, "issuer", "audience", "key-1", live.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := verifier.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Request-ID") != seen {
+			t.Error("request ID lost")
+		}
+	}))
+	for _, id := range []string{"00000000-0000-4000-8000-000000000001", "00000000000040008000000000000001", "invalid"} {
+		req := httptest.NewRequest("POST", "/api/events", nil)
+		req.Header.Set("X-Request-ID", id)
+		req.Header.Set("Authorization", "Bearer "+sign(t, key, nil, "key-1"))
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, req)
+		if recorder.Code != 200 || !uuidPattern.MatchString(seen) || recorder.Header().Get("X-Request-ID") != seen {
+			t.Fatalf("request correlation failed: %d", recorder.Code)
+		}
+	}
+}

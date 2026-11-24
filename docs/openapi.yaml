@@ -1,12 +1,12 @@
 openapi: 3.0.3
 info:
   title: BiletFlow API
-  version: 0.2.0
-  description: Shared BiletFlow Auth/User/Profile and Event contract. Python identity routes are implemented;
-    Event edit/delete/unpublish remain Go-owned planned operations. All routes preserve the /api prefix.
+  version: 0.3.0
+  description: Shared identity, support, notifications, administration and Go business contract. Implementation
+    status is explicit; planned Go routes are not completed functionality.
 servers:
 - url: http://localhost:8000
-  description: Python identity service; /api/auth, /api/users, /api/organizer-profile only
+  description: Python identity/support/notifications/admin and private internal APIs
 - url: http://localhost:8080
   description: Go Event service; /api/events only
 - url: http://localhost:4010
@@ -57,10 +57,13 @@ paths:
           $ref: '#/components/responses/APIError'
         '413':
           $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
       tags:
       - identity
-      description: Creates attendee only. Email is trimmed/lowercased. Extra fields including role or
-        userId are rejected; email is sent through the configured adapter.
+      description: Creates attendee and encrypted durable verification job atomically. SMTP failure leaves
+        a visible retryable job, not a lost account. Delivery is asynchronous; normal response remains
+        201.
       x-implementation-status: implemented
   /api/auth/verify-email:
     post:
@@ -154,6 +157,8 @@ paths:
           $ref: '#/components/responses/APIError'
         '413':
           $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
       tags:
       - identity
       description: Verified active users authenticate with normalized email/password. Returns token and
@@ -194,6 +199,8 @@ paths:
         '503':
           $ref: '#/components/responses/APIError'
         '413':
+          $ref: '#/components/responses/APIError'
+        '429':
           $ref: '#/components/responses/APIError'
       tags:
       - identity
@@ -669,6 +676,9 @@ paths:
       description: Edit a draft event. Event ownership and visibility authorization are enforced by the
         JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
       x-implementation-status: planned
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
     delete:
       summary: Cancel or delete a draft event
       security:
@@ -698,6 +708,9 @@ paths:
       description: Cancel or delete a draft event. Event ownership and visibility authorization are enforced
         by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
       x-implementation-status: planned
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
   /api/events/{eventId}/publish:
     post:
       summary: Publish a draft event
@@ -766,6 +779,2175 @@ paths:
       description: Move a published event back to draft. Event ownership and visibility authorization
         are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
       x-implementation-status: planned
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/auth/resend-verification:
+    post:
+      tags:
+      - identity
+      summary: Resend Verification
+      operationId: resend_verification_api_auth_resend_verification_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Resend Verification. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/auth/logout:
+    post:
+      tags:
+      - identity
+      summary: Logout
+      operationId: logout_api_auth_logout_post
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      security:
+      - bearerAuth: []
+      description: Logout. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/support/cases:
+    post:
+      tags:
+      - platform
+      summary: Create Case
+      operationId: create_case_api_support_cases_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Idempotency-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseInput'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '200':
+          description: Replay of the same idempotent request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseResponse'
+      description: Create Case. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+    get:
+      tags:
+      - platform
+      summary: List Cases
+      operationId: list_cases_api_support_cases_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: query
+        required: false
+        schema:
+          title: Eventid
+          type: string
+          format: uuid
+          nullable: true
+      - name: after
+        in: query
+        required: false
+        schema:
+          title: After
+          type: string
+          format: uuid
+          nullable: true
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasePage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: List Cases. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/support/cases/{case_id}:
+    get:
+      tags:
+      - platform
+      summary: Get Case
+      operationId: get_case_api_support_cases__case_id__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Get Case. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+    patch:
+      tags:
+      - platform
+      summary: Change Case
+      operationId: change_case_api_support_cases__case_id__patch
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Idempotency-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseChange'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Change Case. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/support/cases/{case_id}/messages:
+    get:
+      tags:
+      - platform
+      summary: Messages
+      operationId: messages_api_support_cases__case_id__messages_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      - name: after
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: After
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Messages. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+    post:
+      tags:
+      - platform
+      summary: Reply
+      operationId: reply_api_support_cases__case_id__messages_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Idempotency-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInput'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '200':
+          description: Replay of the same idempotent request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      description: Reply. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/support/cases/{case_id}/history:
+    get:
+      tags:
+      - platform
+      summary: Case History
+      operationId: case_history_api_support_cases__case_id__history_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      - name: after
+        in: query
+        required: false
+        schema:
+          title: After
+          type: string
+          format: uuid
+          nullable: true
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportHistoryPage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Case History. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/notifications:
+    get:
+      tags:
+      - platform
+      summary: Notifications
+      operationId: notifications_api_notifications_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: after
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: After
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Notifications. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/notifications/{notification_id}/read:
+    patch:
+      tags:
+      - platform
+      summary: Read Notification
+      operationId: read_notification_api_notifications__notification_id__read_patch
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: notification_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Notification Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Read Notification. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /internal/notifications:
+    post:
+      tags:
+      - platform
+      summary: Ingest Notification
+      operationId: ingest_notification_internal_notifications_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessNotification'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnqueuedResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Ingest Notification. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+      security:
+      - serviceAuth: []
+  /internal/organizer-profiles/{user_id}:
+    get:
+      tags:
+      - platform
+      summary: Internal Profile
+      operationId: internal_profile_internal_organizer_profiles__user_id__get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Internal Profile. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+      security:
+      - serviceAuth: []
+  /internal/platform-settings:
+    get:
+      tags:
+      - platform
+      summary: Internal Settings
+      operationId: internal_settings_internal_platform_settings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Internal Settings. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+      security:
+      - serviceAuth: []
+  /api/admin/users:
+    get:
+      tags:
+      - platform
+      summary: User Search
+      operationId: user_search_api_admin_users_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 254
+          default: ''
+          title: Q
+      - name: after
+        in: query
+        required: false
+        schema:
+          title: After
+          type: string
+          format: uuid
+          nullable: true
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: User Search. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/admin/users/{user_id}:
+    patch:
+      tags:
+      - platform
+      summary: Suspend
+      operationId: suspend_api_admin_users__user_id__patch
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspensionInput'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Suspend. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/admin/platform-settings:
+    get:
+      tags:
+      - platform
+      summary: Get Settings
+      operationId: get_settings_api_admin_platform_settings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      security:
+      - bearerAuth: []
+      description: Get Settings. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+    patch:
+      tags:
+      - platform
+      summary: Set Settings
+      operationId: set_settings_api_admin_platform_settings_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsInput'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      security:
+      - bearerAuth: []
+      description: Set Settings. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/admin/audit:
+    get:
+      tags:
+      - platform
+      summary: Admin Audit
+      operationId: admin_audit_api_admin_audit_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: after
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: After
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Admin Audit. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/admin/notification-jobs:
+    get:
+      tags:
+      - platform
+      summary: Job Status
+      operationId: job_status_api_admin_notification_jobs_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: state
+        in: query
+        required: false
+        schema:
+          title: State
+          type: string
+          pattern: ^(pending|sending|delivered|failed|skipped)$
+          nullable: true
+      - name: after
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: After
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPage'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Job Status. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/admin/notification-jobs/{job_id}/retry:
+    post:
+      tags:
+      - platform
+      summary: Retry Job
+      operationId: retry_job_api_admin_notification_jobs__job_id__retry_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Job Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnqueuedResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Retry Job. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+  /api/admin/business/{resource}:
+    get:
+      tags:
+      - platform
+      summary: Business Search
+      operationId: business_search_api_admin_business__resource__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: resource
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resource
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 100
+          default: ''
+          title: Q
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Business Search. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+      x-upstream-dependency: Go administration API; unavailable upstream fails closed.
+  /api/events/{eventId}/ticket-types:
+    get:
+      summary: List event ticket types
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: &id001
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketType'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+    post:
+      summary: Create owned event ticket type
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '201':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketType'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTypeInput'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/events/{eventId}/ticket-types/{ticketTypeId}:
+    patch:
+      summary: Update owned event ticket type
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      - name: ticketTypeId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketType'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTypeInput'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/orders:
+    post:
+      summary: Reserve free or simulated paid order transactionally
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id001
+      responses:
+        '201':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderInput'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+    get:
+      summary: List current attendee orders
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters: []
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/orders/{orderId}:
+    get:
+      summary: Read authorized canonical order
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/orders/{orderId}/simulate-payment:
+    post:
+      summary: Confirm simulated payment without real funds
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: *id001
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulatedOutcome'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/orders/{orderId}/cancel:
+    post:
+      summary: Cancel authorized free order and invalidate tickets
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: *id001
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/orders/{orderId}/refund:
+    post:
+      summary: Issue authorized full simulated refund
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: *id001
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/tickets/{ticketId}:
+    get:
+      summary: Read authorized canonical admission ticket
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionTicket'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/tickets/{ticketId}/download:
+    get:
+      summary: Download own or authorized staff ticket PDF
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/events/{eventId}/activation:
+    get:
+      summary: Read own event activation checklist and fee
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaidActivation'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+    post:
+      summary: Activate simulated paid sales for own event
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaidActivation'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulatedOutcome'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/events/{eventId}/staff/me:
+    get:
+      summary: Resolve current event-scoped staff permissions
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventStaffPermission'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/events/{eventId}/staff:
+    post:
+      summary: Assign event-scoped support or check-in staff
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventStaffPermission'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                userId: *id001
+                canSupport:
+                  type: boolean
+                canCheckIn:
+                  type: boolean
+              required:
+              - userId
+              - canSupport
+              - canCheckIn
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/events:
+    get:
+      summary: Search moderated business events
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters: []
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessReportPage'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/orders:
+    get:
+      summary: Search moderated business orders
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters: []
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessReportPage'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/payments:
+    get:
+      summary: Search moderated business payments
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters: []
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessReportPage'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/refunds:
+    get:
+      summary: Search moderated business refunds
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters: []
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessReportPage'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/activations:
+    get:
+      summary: Search moderated business activations
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters: []
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessReportPage'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/events/{eventId}/suspend:
+    post:
+      summary: Suspend event sales and admission
+      description: Go-owned contract for Madi; implementation and end-to-end acceptance are pending. Python
+        must not implement or mutate these business entities.
+      tags:
+      - events
+      security:
+      - bearerAuth: []
+      x-implementation-status: planned
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful business operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      x-upstream-dependency: Go business administration APIs; adapter fails closed until Madi implements
+        them.
+      servers:
+      - url: http://localhost:8080
+        description: Go-owned planned contract; not implemented on current main
+  /api/admin/business/events/{event_id}/suspend:
+    post:
+      tags:
+      - platform
+      summary: Suspend Event
+      operationId: suspend_event_api_admin_business_events__event_id__suspend_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Suspend Event. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+      x-upstream-dependency: Go administration API; unavailable upstream fails closed.
+  /api/event-images/{event_id}:
+    put:
+      tags:
+      - platform
+      summary: Put Image
+      operationId: put_image_api_event_images__event_id__put
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Event Id
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '422':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Put Image. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
+    get:
+      tags:
+      - platform
+      summary: Get Image
+      operationId: get_image_api_event_images__event_id__get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '422':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      description: Get Image. Python-owned implementation with live identity and scoped permissions.
+      x-implementation-status: implemented
 components:
   securitySchemes:
     bearerAuth:
@@ -775,6 +2957,10 @@ components:
       description: RS256 JWT with fixed issuer/audience, exp/iat/nbf, UUID sub/jti, role, ver and kid.
         Python checks live user status/token version; Go must also confirm live identity. Only public
         keys are shared.
+    serviceAuth:
+      type: http
+      scheme: bearer
+      description: Opaque internal service token. Server-to-server only.
   schemas:
     User:
       type: object
@@ -892,6 +3078,943 @@ components:
               type: string
             message:
               type: string
+    AdminUserResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        email:
+          type: string
+          format: email
+          title: Email
+        role:
+          $ref: '#/components/schemas/Role'
+        displayName:
+          title: Displayname
+          type: string
+          nullable: true
+        emailVerified:
+          type: boolean
+          title: Emailverified
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+        isActive:
+          type: boolean
+          title: Isactive
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - email
+      - role
+      - displayName
+      - emailVerified
+      - createdAt
+      - isActive
+      title: AdminUserResponse
+    AuditPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AuditResponse'
+          type: array
+          title: Items
+        nextCursor:
+          type: integer
+          title: Nextcursor
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: AuditPage
+    AuditResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        actorId:
+          title: Actorid
+          type: string
+          format: uuid
+          nullable: true
+        actorKind:
+          type: string
+          enum:
+          - account
+          - operator
+          title: Actorkind
+        action:
+          type: string
+          title: Action
+        targetId:
+          type: string
+          title: Targetid
+        detail:
+          type: string
+          title: Detail
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - actorId
+      - actorKind
+      - action
+      - targetId
+      - detail
+      - createdAt
+      title: AuditResponse
+    BusinessNotification:
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+          title: Sourceid
+        userId:
+          type: string
+          format: uuid
+          title: Userid
+        template:
+          type: string
+          enum:
+          - order_confirmation
+          - ticket_delivery
+          - payment_failed
+          - event_updated
+          - event_cancelled
+          - refund_completed
+          - payout_status
+          title: Template
+        eventId:
+          title: Eventid
+          type: string
+          format: uuid
+          nullable: true
+        orderId:
+          title: Orderid
+          type: string
+          format: uuid
+          nullable: true
+        ticketId:
+          title: Ticketid
+          type: string
+          format: uuid
+          nullable: true
+        simulation:
+          type: boolean
+          title: Simulation
+          default: true
+          enum:
+          - true
+      additionalProperties: false
+      type: object
+      required:
+      - sourceId
+      - userId
+      - template
+      title: BusinessNotification
+    CaseChange:
+      properties:
+        status:
+          title: Status
+          type: string
+          enum:
+          - open
+          - in_progress
+          - waiting_for_customer
+          - resolved
+          nullable: true
+        assigneeId:
+          title: Assigneeid
+          type: string
+          format: uuid
+          nullable: true
+        escalated:
+          title: Escalated
+          type: boolean
+          nullable: true
+      additionalProperties: false
+      type: object
+      title: CaseChange
+    CaseInput:
+      properties:
+        subject:
+          type: string
+          maxLength: 160
+          minLength: 1
+          title: Subject
+        message:
+          type: string
+          maxLength: 4000
+          minLength: 1
+          title: Message
+        category:
+          type: string
+          enum:
+          - ticket_delivery
+          - payment
+          - refund
+          - seating
+          - event_information
+          - check_in
+          - account
+          - technical
+          title: Category
+        eventId:
+          title: Eventid
+          type: string
+          format: uuid
+          nullable: true
+        orderId:
+          title: Orderid
+          type: string
+          format: uuid
+          nullable: true
+        ticketId:
+          title: Ticketid
+          type: string
+          format: uuid
+          nullable: true
+      additionalProperties: false
+      type: object
+      required:
+      - subject
+      - message
+      - category
+      title: CaseInput
+    CasePage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CaseResponse'
+          type: array
+          title: Items
+        nextCursor:
+          title: Nextcursor
+          type: string
+          format: uuid
+          nullable: true
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: CasePage
+    CaseResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        requesterId:
+          type: string
+          format: uuid
+          title: Requesterid
+        organizerId:
+          title: Organizerid
+          type: string
+          format: uuid
+          nullable: true
+        assigneeId:
+          title: Assigneeid
+          type: string
+          format: uuid
+          nullable: true
+        eventId:
+          title: Eventid
+          type: string
+          format: uuid
+          nullable: true
+        orderId:
+          title: Orderid
+          type: string
+          format: uuid
+          nullable: true
+        ticketId:
+          title: Ticketid
+          type: string
+          format: uuid
+          nullable: true
+        channel:
+          type: string
+          enum:
+          - event
+          - platform
+          title: Channel
+        category:
+          type: string
+          enum:
+          - ticket_delivery
+          - payment
+          - refund
+          - seating
+          - event_information
+          - check_in
+          - account
+          - technical
+          title: Category
+        subject:
+          type: string
+          title: Subject
+        status:
+          type: string
+          enum:
+          - open
+          - in_progress
+          - waiting_for_customer
+          - resolved
+          title: Status
+        sequence:
+          type: integer
+          title: Sequence
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - requesterId
+      - organizerId
+      - assigneeId
+      - eventId
+      - orderId
+      - ticketId
+      - channel
+      - category
+      - subject
+      - status
+      - sequence
+      - createdAt
+      - updatedAt
+      title: CaseResponse
+    EnqueuedResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        state:
+          type: string
+          enum:
+          - pending
+          - sending
+          - delivered
+          - failed
+          - skipped
+          title: State
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - state
+      title: EnqueuedResponse
+    JobPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/JobResponse'
+          type: array
+          title: Items
+        nextCursor:
+          type: integer
+          title: Nextcursor
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: JobPage
+    JobResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        source:
+          type: string
+          title: Source
+        template:
+          type: string
+          title: Template
+        state:
+          type: string
+          enum:
+          - pending
+          - sending
+          - delivered
+          - failed
+          - skipped
+          title: State
+        attempts:
+          type: integer
+          title: Attempts
+        failureCode:
+          title: Failurecode
+          type: string
+          nullable: true
+        nextAttemptAt:
+          type: string
+          format: date-time
+          title: Nextattemptat
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - source
+      - template
+      - state
+      - attempts
+      - failureCode
+      - nextAttemptAt
+      title: JobResponse
+    MessageInput:
+      properties:
+        body:
+          type: string
+          maxLength: 4000
+          minLength: 1
+          title: Body
+      additionalProperties: false
+      type: object
+      required:
+      - body
+      title: MessageInput
+    MessagePage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MessageResponse'
+          type: array
+          title: Items
+        nextCursor:
+          type: integer
+          title: Nextcursor
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: MessagePage
+    MessageResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        caseId:
+          type: string
+          format: uuid
+          title: Caseid
+        authorId:
+          type: string
+          format: uuid
+          title: Authorid
+        sequence:
+          type: integer
+          title: Sequence
+        body:
+          type: string
+          title: Body
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - caseId
+      - authorId
+      - sequence
+      - body
+      - createdAt
+      title: MessageResponse
+    NotificationPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+          type: array
+          title: Items
+        nextCursor:
+          type: integer
+          title: Nextcursor
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: NotificationPage
+    NotificationResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        template:
+          type: string
+          title: Template
+        title:
+          type: string
+          title: Title
+        context:
+          additionalProperties:
+            type: string
+          type: object
+          title: Context
+        link:
+          type: string
+          title: Link
+        state:
+          type: string
+          enum:
+          - pending
+          - sending
+          - delivered
+          - failed
+          - skipped
+          title: State
+        attempts:
+          type: integer
+          title: Attempts
+        readAt:
+          title: Readat
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - template
+      - title
+      - context
+      - link
+      - state
+      - attempts
+      - readAt
+      - createdAt
+      title: NotificationResponse
+    ResetRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          format: email
+          title: Email
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      title: ResetRequest
+    Role:
+      type: string
+      enum:
+      - attendee
+      - organizer
+      - event_admin
+      - platform_admin
+      title: Role
+    SettingsInput:
+      properties:
+        activationFeeMinor:
+          type: integer
+          maximum: 100000000.0
+          minimum: 0.0
+          title: Activationfeeminor
+        expectedVersion:
+          type: integer
+          minimum: 1.0
+          title: Expectedversion
+      additionalProperties: false
+      type: object
+      required:
+      - activationFeeMinor
+      - expectedVersion
+      title: SettingsInput
+    SettingsResponse:
+      properties:
+        activationFeeMinor:
+          type: integer
+          title: Activationfeeminor
+        currency:
+          type: string
+          title: Currency
+          enum:
+          - KZT
+        version:
+          type: integer
+          title: Version
+        simulationOnly:
+          type: boolean
+          title: Simulationonly
+          enum:
+          - true
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      additionalProperties: false
+      type: object
+      required:
+      - activationFeeMinor
+      - currency
+      - version
+      - simulationOnly
+      - updatedAt
+      title: SettingsResponse
+    SupportActionResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        actorId:
+          type: string
+          format: uuid
+          title: Actorid
+        action:
+          type: string
+          title: Action
+        detail:
+          type: string
+          title: Detail
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - actorId
+      - action
+      - detail
+      - createdAt
+      title: SupportActionResponse
+    SuspensionInput:
+      properties:
+        isActive:
+          type: boolean
+          title: Isactive
+      additionalProperties: false
+      type: object
+      required:
+      - isActive
+      title: SuspensionInput
+    UserPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AdminUserResponse'
+          type: array
+          title: Items
+        nextCursor:
+          title: Nextcursor
+          type: string
+          format: uuid
+          nullable: true
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: UserPage
+    TicketType:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id001
+        eventId: *id001
+        name: &id002
+          type: string
+          minLength: 1
+          maxLength: 100
+        kind: &id003
+          type: string
+          enum:
+          - free
+          - paid
+        priceMinor: &id004
+          type: integer
+          minimum: 0
+          maximum: 1000000000
+        currency:
+          type: string
+          enum:
+          - KZT
+        capacity: &id005
+          type: integer
+          minimum: 1
+        remaining:
+          type: integer
+          minimum: 0
+      required:
+      - id
+      - eventId
+      - name
+      - kind
+      - priceMinor
+      - currency
+      - capacity
+      - remaining
+    TicketTypeInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: *id002
+        kind: *id003
+        priceMinor: *id004
+        capacity: *id005
+      required:
+      - name
+      - kind
+      - priceMinor
+      - capacity
+    OrderLine:
+      type: object
+      additionalProperties: false
+      properties:
+        ticketTypeId: *id001
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 10
+      required:
+      - ticketTypeId
+      - quantity
+    OrderInput:
+      type: object
+      additionalProperties: false
+      properties:
+        eventId: *id001
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+          minItems: 1
+          maxItems: 10
+        attendeeName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        promoCode:
+          type: string
+          maxLength: 64
+      required:
+      - eventId
+      - items
+      - attendeeName
+    Order:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id001
+        eventId: *id001
+        userId: *id001
+        status:
+          type: string
+          enum:
+          - reserved
+          - payment_pending
+          - confirmed
+          - payment_failed
+          - expired
+          - cancelled
+          - refunded
+        totalMinor: *id004
+        currency:
+          type: string
+          enum:
+          - KZT
+        createdAt:
+          type: string
+          format: date-time
+        simulationOnly:
+          type: boolean
+          enum:
+          - true
+        organizerId:
+          type: string
+          format: uuid
+      required:
+      - id
+      - eventId
+      - userId
+      - status
+      - totalMinor
+      - currency
+      - createdAt
+      - simulationOnly
+      - organizerId
+    AdmissionTicket:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id001
+        eventId: *id001
+        orderId: *id001
+        attendeeId: *id001
+        ticketTypeId: *id001
+        status:
+          type: string
+          enum:
+          - valid
+          - checked_in
+          - cancelled
+          - refunded
+        admissionToken:
+          type: string
+          description: Tamper-resistant admission token; never accepted as a campaign token or logged.
+        organizerId:
+          type: string
+          format: uuid
+      required:
+      - id
+      - eventId
+      - orderId
+      - attendeeId
+      - ticketTypeId
+      - status
+      - organizerId
+    EventStaffPermission:
+      type: object
+      additionalProperties: false
+      properties:
+        eventId: *id001
+        userId: *id001
+        canSupport:
+          type: boolean
+        canCheckIn:
+          type: boolean
+      required:
+      - eventId
+      - userId
+      - canSupport
+      - canCheckIn
+    PaidActivation:
+      type: object
+      additionalProperties: false
+      properties:
+        eventId: *id001
+        status:
+          type: string
+          enum:
+          - inactive
+          - active
+          - suspended
+        feeMinor: *id004
+        feeVersion:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          enum:
+          - KZT
+        simulationOnly:
+          type: boolean
+          enum:
+          - true
+      required:
+      - eventId
+      - status
+      - feeMinor
+      - feeVersion
+      - currency
+      - simulationOnly
+    SimulatedOutcome:
+      type: object
+      additionalProperties: false
+      properties:
+        simulation:
+          type: boolean
+          enum:
+          - true
+        outcome:
+          type: string
+          enum:
+          - success
+          - failed
+      required:
+      - simulation
+      - outcome
+    BusinessReportPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        nextCursor:
+          type: string
+          nullable: true
+      required:
+      - items
+      - nextCursor
+    SupportHistoryPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SupportActionResponse'
+          type: array
+          title: Items
+        nextCursor:
+          title: Nextcursor
+          type: string
+          format: uuid
+          nullable: true
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - nextCursor
+      title: SupportHistoryPage
+    ImageResponse:
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          title: Eventid
+        imageUrl:
+          type: string
+          title: Imageurl
+        sha256:
+          type: string
+          title: Sha256
+        width:
+          type: integer
+          title: Width
+        height:
+          type: integer
+          title: Height
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      additionalProperties: false
+      type: object
+      required:
+      - eventId
+      - imageUrl
+      - sha256
+      - width
+      - height
+      - updatedAt
+      title: ImageResponse
   responses:
     APIError:
       description: Request failed; no credential or request input echoed
@@ -904,3 +4027,5 @@ tags:
   description: Python-owned identity and organizer onboarding
 - name: events
   description: Go-owned Event operations; see implementation status in api-contract.md
+- name: platform
+  description: Python support, delivery and Platform Admin operations

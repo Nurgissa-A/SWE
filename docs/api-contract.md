@@ -6,7 +6,7 @@
 
 | Route | Behavior |
 |---|---|
-| POST /api/auth/register | 201 attendee only, normalized email, Argon2id hash and verification email; duplicate 409, invalid/extra fields 422, SMTP unavailable 503 |
+| POST /api/auth/register | 201 attendee only, normalized email, Argon2id hash and verification email; duplicate 409, invalid/extra fields 422, durable queued email (SMTP failure is retried asynchronously) |
 | POST /api/auth/verify-email | 200 once; invalid, expired, reused or wrong-purpose token 400 |
 | POST /api/auth/login | 200 token + user; invalid/inactive 401; unverified 403; no-store response |
 | POST /api/auth/request-password-reset | Generic 200 for known/unknown addresses; configured mail adapter, no raw token in response |
@@ -32,7 +32,7 @@ Go create/list/detail/publish already have source implementations; PATCH/DELETE/
 
 ## Tools
 
-Python: `http://localhost:8000/docs`, `/redoc`, `/openapi.json` (implemented identity routes only).
+Python: `http://localhost:8000/docs`, `/redoc`, `/openapi.json` (implemented Python routes only).
 
 From root, Node 24.18+ and Python environment:
 
@@ -51,3 +51,9 @@ When changing a contract, update examples/validation and generated types in the 
 ### Tooling advisory boundary
 
 The pinned development-only Prism dependency chain currently brings upstream `postman-collection` / Faker advisories. Compatible lodash/uuid fixes are overridden in the root lock, but six high-severity transitive audit entries remain in the mock tooling chain. There is no upstream compatible patched `http-spec` release at the time of implementation. No Prism/Node tooling is installed in the Python runtime image, and no untrusted Postman/spec inputs or public interfaces are supported. Run it only for this trusted local YAML on loopback/private Docker networking. Track the upstream upgrade; do not apply `npm audit fix --force` or incompatible major overrides merely to suppress the report.
+
+## Platform contract v0.3
+
+See [Python platform behavior](python-platform.md). Run `python scripts/sync_python_contract.py`
+after changing Python schemas/routes, then regenerate types. Shared planned Go operations
+carry explicit implementation-status metadata; they are contracts, not working business APIs.

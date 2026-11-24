@@ -3,9 +3,12 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/rsa"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -85,6 +88,7 @@ func (v *Verifier) authenticate(r *http.Request, raw string) (Principal, int) {
 		return Principal{}, http.StatusServiceUnavailable
 	}
 	req.Header.Set("Authorization", "Bearer "+raw)
+	req.Header.Set("X-Request-ID", r.Header.Get("X-Request-ID"))
 	response, err := v.client.Do(req)
 	if err != nil {
 		return Principal{}, http.StatusServiceUnavailable
@@ -115,6 +119,24 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 
 func (v *Verifier) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := r.Header.Get("X-Request-ID")
+		if len(requestID) == 32 {
+			if _, err := hex.DecodeString(requestID); err == nil {
+				requestID = requestID[:8] + "-" + requestID[8:12] + "-" + requestID[12:16] + "-" + requestID[16:20] + "-" + requestID[20:]
+			}
+		}
+		if !uuidPattern.MatchString(requestID) {
+			var b [16]byte
+			if _, err := rand.Read(b[:]); err != nil {
+				WriteError(w, 500, "Request initialization failed")
+				return
+			}
+			b[6] = (b[6] & 15) | 64
+			b[8] = (b[8] & 63) | 128
+			requestID = fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
+		}
+		r.Header.Set("X-Request-ID", requestID)
+		w.Header().Set("X-Request-ID", requestID)
 		header := r.Header.Get("Authorization")
 		// Existing detail endpoint permits anonymous public/unlisted published events only.
 		if header == "" && r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/events/") {

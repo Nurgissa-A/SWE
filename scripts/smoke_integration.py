@@ -1,14 +1,13 @@
 """Real Python -> RS256 -> Go ownership/authorization smoke on Compose services."""
 
 import os
-import re
 import time
 from pathlib import Path
 
 import httpx
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
-from smoke_identity import onboard
+from smoke_identity import onboard, wait_action_token
 
 
 def main():
@@ -88,14 +87,7 @@ def main():
                 identity.post(
                     "/api/auth/request-password-reset", json={"email": user["email"]}
                 ).raise_for_status()
-                reset = None
-                for message in mailbox.get("/api/v1/messages").json()["messages"]:
-                    if any(to.get("Address") == user["email"] for to in message.get("To", [])):
-                        body = mailbox.get("/api/v1/message/" + message["ID"]).json()["Text"]
-                        if "/reset-password?" in body:
-                            reset = re.search(r"token=([A-Za-z0-9_-]+)", body).group(1)
-                            break
-                assert reset, "Reset email not delivered"
+                reset = wait_action_token(mailbox, user["email"], "reset-password")
                 identity.post(
                     "/api/auth/reset-password",
                     json={"token": reset, "newPassword": "local-smoke-reset-123"},

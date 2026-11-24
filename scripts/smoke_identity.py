@@ -10,22 +10,23 @@ from uuid import uuid4
 import httpx
 
 
-def onboard(client, mailbox, name):
-    email = f"{name}-{uuid4().hex}@example.com"
-    password = secrets.token_urlsafe(24)
-    result = client.post("/api/auth/register", json={"email": email, "password": password})
-    assert result.status_code == 201, result.status_code
-    token = None
-    for _ in range(30):
+def wait_action_token(mailbox, email, page):
+    for _ in range(40):
         for message in mailbox.get("/api/v1/messages").json().get("messages", []):
             if any(to.get("Address") == email for to in message.get("To", [])):
                 body = mailbox.get("/api/v1/message/" + message["ID"]).json()["Text"]
-                token = re.search(r"token=([A-Za-z0-9_-]+)", body).group(1)
-                break
-        if token:
-            break
+                if "/" + page + "?" in body:
+                    return re.search(r"token=([A-Za-z0-9_-]+)", body).group(1)
         time.sleep(0.2)
-    assert token, "Verification email not captured"
+    raise AssertionError("Action email not captured")
+
+
+def onboard(client, mailbox, name, password=None):
+    email = f"{name}-{uuid4().hex}@example.com"
+    password = password or secrets.token_urlsafe(24)
+    result = client.post("/api/auth/register", json={"email": email, "password": password})
+    assert result.status_code == 201, result.status_code
+    token = wait_action_token(mailbox, email, "verify-email")
     assert client.post("/api/auth/verify-email", json={"token": token}).status_code == 200
     assert client.post("/api/auth/verify-email", json={"token": token}).status_code == 400
     login = client.post("/api/auth/login", json={"email": email, "password": password})

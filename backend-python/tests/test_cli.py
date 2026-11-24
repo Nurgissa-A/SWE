@@ -2,8 +2,10 @@ import sys
 
 import pytest
 from conftest import logged_in
+from sqlalchemy import select
 
 from app.cli import main
+from app.models.platform import AdminAudit
 
 
 def test_operator_role_assignment_revokes_old_token(ctx, monkeypatch, database_url):
@@ -26,6 +28,11 @@ def test_operator_role_assignment_revokes_old_token(ctx, monkeypatch, database_u
         .status_code
         == 401
     )
+    with ctx[1].state.session_factory() as session:
+        audits = list(session.scalars(select(AdminAudit).order_by(AdminAudit.id)))
+        assert len(audits) == 2
+        assert all(row.actor_kind == "operator" and row.actor_id is None for row in audits)
+        assert audits[-1].action == "operator_disable_user"
 
 
 def test_operator_rejects_unknown_user(ctx, monkeypatch, database_url):

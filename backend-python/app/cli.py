@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.db.session import make_engine
 from app.models.identity import Role, User
+from app.models.platform import AdminAudit
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["set-role", "disable-user"])
+    parser.add_argument("command", choices=["set-role", "disable-user", "enable-user"])
     parser.add_argument("email")
     parser.add_argument("--role", choices=[r.value for r in Role])
     args = parser.parse_args()
@@ -29,7 +30,16 @@ def main():
             if args.command == "set-role":
                 user.role = args.role
             else:
-                user.is_active = False
+                user.is_active = args.command == "enable-user"
+            session.add(
+                AdminAudit(
+                    actor_id=None,
+                    actor_kind="operator",
+                    action="operator_" + args.command.replace("-", "_"),
+                    target_id=str(user.id),
+                    detail=args.role if args.command == "set-role" else args.command,
+                )
+            )
             user.token_version += 1
             session.commit()
             print(f"Updated user {user.id}; existing access tokens invalidated.")

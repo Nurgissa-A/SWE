@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_session
 from app.models.identity import Role, User
+from app.models.platform import RevokedToken
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -32,9 +33,15 @@ def resolve_user(
         Role(claims["role"])
     except (jwt.InvalidTokenError, ValueError, TypeError, KeyError):
         raise unauthorized() from None
-    user = session.get(User, uid, with_for_update=for_update, populate_existing=for_update)
+    user = session.get(
+        User,
+        uid,
+        with_for_update={"key_share": True} if for_update else None,
+        populate_existing=for_update,
+    )
     if (
-        not user
+        session.get(RevokedToken, UUID(claims["jti"])) is not None
+        or not user
         or not user.is_active
         or not user.email_verified
         or user.token_version != claims["ver"]

@@ -110,3 +110,13 @@ All 16 assigned implementation tasks are complete within Weeks 1–4. PR approva
 and merge remain separate human decisions. Production mail provider credentials,
 TLS/deployment operations and the existing one-backend SRS deviation are explicit
 operational/team boundaries, not unimplemented identity endpoints.
+
+
+## Scope of the later user request
+
+This is the historical Weeks 1–4 acceptance record, not an assertion that the full
+12-week assignment was complete. The user subsequently required Aliar through
+Week 12 and selected local Docker HTTPS. The new platform/delivery/release work
+is assessed separately in the full task matrix. In particular, the old synchronous
+SMTP window and client-only logout policy are superseded by the encrypted outbox
+and per-session revocation implementation; 67 is the historical baseline count.

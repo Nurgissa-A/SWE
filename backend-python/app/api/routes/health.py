@@ -15,6 +15,9 @@ def ready(request: Request) -> dict[str, str]:
     try:
         with request.app.state.engine.connect() as conn:
             conn.execute(text("SELECT 1 FROM identity_users LIMIT 1"))
+            version = conn.scalar(text("SELECT version_num FROM alembic_version"))
+            if version != "0005_event_images":
+                raise HTTPException(503, "Identity migrations are not current")
     except SQLAlchemyError:
         raise HTTPException(503, "Database or migrations unavailable") from None
     return {"status": "ready"}

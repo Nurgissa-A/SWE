@@ -1,10 +1,15 @@
+from datetime import UTC, datetime
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import current_user, current_user_for_update, require_roles
+from app.core.abuse import auth_budget
 from app.db.session import get_session
 from app.models.identity import OrganizerProfile, Role, User
+from app.models.platform import RevokedToken
 from app.repositories.identity import IdentityRepository
 from app.schemas.identity import (
     Credentials,
@@ -27,7 +32,12 @@ def service(request: Request, session: Session = Depends(get_session)) -> Identi
     return IdentityService(session, request.app.state.settings, request.app.state.mailer)
 
 
-@router.post("/auth/register", response_model=UserResponse, status_code=201)
+@router.post(
+    "/auth/register",
+    response_model=UserResponse,
+    status_code=201,
+    dependencies=[Depends(auth_budget)],
+)
 def register(data: Credentials, svc: IdentityService = Depends(service)):
     return svc.register(str(data.email), data.password)
 
@@ -37,7 +47,7 @@ def verify_email(data: VerifyToken, svc: IdentityService = Depends(service)):
     svc.verify(data.token)
 
 
-@router.post("/auth/login", response_model=LoginResponse)
+@router.post("/auth/login", response_model=LoginResponse, dependencies=[Depends(auth_budget)])
 def login(
     data: Login, request: Request, response: Response, svc: IdentityService = Depends(service)
 ):
@@ -46,7 +56,12 @@ def login(
     return {"token": request.app.state.tokens.issue(user), "user": user}
 
 
-@router.post("/auth/request-password-reset", status_code=200, response_class=Response)
+@router.post(
+    "/auth/request-password-reset",
+    status_code=200,
+    response_class=Response,
+    dependencies=[Depends(auth_budget)],
+)
 def request_reset(data: ResetRequest, svc: IdentityService = Depends(service)):
     svc.request_reset(str(data.email))
 
@@ -114,3 +129,33 @@ def update_profile(
         setattr(row, key, value)
     session.commit()
     return row
+
+
+@router.post(
+    "/auth/resend-verification",
+    status_code=200,
+    response_class=Response,
+    dependencies=[Depends(auth_budget)],
+)
+def resend_verification(data: ResetRequest, svc: IdentityService = Depends(service)):
+    user = svc.repo.by_email(str(data.email), for_update=True)
+    if user and user.is_active and not user.email_verified:
+        job = svc.send_action(user, "verify_email", svc.settings.verification_token_minutes)
+        svc.session.commit()
+        if svc.settings.notification_eager_delivery:
+            svc.deliver(job.id)
+
+
+@router.post("/auth/logout", status_code=204, response_class=Response)
+def logout(
+    request: Request,
+    user: User = Depends(current_user_for_update),
+    session: Session = Depends(get_session),
+):
+    claims = request.app.state.tokens.decode(request.headers["Authorization"].split()[1])
+    try:
+        expiry = datetime.fromtimestamp(claims["exp"], UTC)
+    except (ValueError, OverflowError):
+        raise HTTPException(401, "Invalid token expiry") from None
+    session.add(RevokedToken(jti=UUID(claims["jti"]), user_id=user.id, expires_at=expiry))
+    session.commit()

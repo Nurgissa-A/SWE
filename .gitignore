@@ -57,3 +57,8 @@ build/
 .coverage
 htmlcov/
 *.egg-info/
+
+# Private database recovery artifacts
+.backups/
+
+.storage/

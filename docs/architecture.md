@@ -45,7 +45,13 @@ they do not replace concurrency evidence with mocked repositories.
 
 ## ADR 004 — Email delivery boundary
 
-The injectable SMTP adapter supports STARTTLS and credentials. Mailpit is a local sink only. Identity action tokens contain 256 random bits and are stored hashed; raw tokens appear only in the email and tests. Synchronous SMTP failure returns 503 and rolls back the pending registration/reset, so the caller can retry. A narrow SMTP-accepted/database-commit failure window can produce an unusable emailed link; this is explicitly not a transactional delivery guarantee. A durable encrypted outbox/retry design is future work, not a claimed production feature. Do not deploy this academic adapter as a production delivery system without that review.
+The SMTP adapter is now driven by a transactional encrypted notification outbox.
+User/action-token/job commit together; SMTP runs afterward in a leased retry
+worker. The key is stored separately from the database and source. Stable action
+keys prevent duplicate jobs; SMTP acknowledgement cannot guarantee exactly-once
+email after a worker crash, so a stable Message-ID is retained. No delivery retry
+replays a business payment/order/ticket operation. Mailpit remains a local sink.
+See [Python platform](python-platform.md) for lease/retry and authorization details.
 
 ## Threat boundary and deployment
 
