@@ -2,7 +2,7 @@
 
 Local verification date: 2026-11-24. Scope is the Aliar component through Week 12;
 see [the task matrix](aliar-weeks-1-12.md) for external dependencies and human
-acceptance. No own PR was merged.
+acceptance. Changes are submitted for review.
 
 ## Executed checks
 
@@ -31,9 +31,9 @@ source SHA and immutable image IDs. Keep images/private key backups separately.
 
 ## Review and handover
 
-Stack order: #9 (`codex/aliar-completion`) → #12 (`codex/python-platform`) →
-#13 (`codex/local-https-release`). Reviewers requested: mazhumadi and
-bakhtiyarnurgul. Approval/merge remains pending. Main is not silently modified.
+Review order: identity stability (`feature/identity-stability`) → Python platform
+(`feature/python-platform`) → local release (`release/aliar-platform`).
+Approval and merge are separate from implementation.
 
 Use [the release runbook](local-release.md), [API behavior](python-platform.md),
 [architecture](architecture.md), [ERD](erd.md), [JWT guide](python-go-auth.md) and

@@ -2,7 +2,7 @@ name: Backend quality
 on:
   pull_request:
   push:
-    branches: [main, 'codex/**']
+    branches: ['**']
 permissions:
   contents: read
 jobs:

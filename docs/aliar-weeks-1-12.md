@@ -1,8 +1,7 @@
 # Aliar Weeks 1–12: implementation and acceptance matrix
 
-Scope: all Python/architecture/infrastructure responsibilities in the retained
-12-week allocation, with local Docker HTTPS chosen by the user. The user explicitly
-excluded implementing Madi's Go business work. “Implemented” below describes Aliar's
+Scope: Python, architecture and infrastructure responsibilities in the 12-week
+plan. Deployment uses local Docker with HTTPS. Go business modules belong to Madi. “Implemented” below describes Aliar's
 code or operator deliverable; it does not assert peer approval, merged PRs, or final
 whole-team acceptance. Original Week 1–4 delivery is recorded in
 [the earlier handover](implementation-weeks-1-4.md).
