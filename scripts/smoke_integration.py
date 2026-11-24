@@ -32,6 +32,8 @@ def main():
                 data = {
                     "title": "JWT integration event",
                     "startsAt": "2030-01-01T10:00:00Z",
+                    "venueName": "Smoke Hall",
+                    "city": "Astana",
                 }
                 assert events.post("/api/events", json=data).status_code == 401
                 assert events.post("/api/events", json=data, headers=attendee).status_code == 403
@@ -79,6 +81,16 @@ def main():
                         ).status_code
                         == 401
                     )
+                # Publishing requires at least one ticket type (SRS 4.2).
+                assert events.post(path + "/publish", headers=first).status_code == 400
+                assert (
+                    events.post(
+                        path + "/ticket-types",
+                        headers=first,
+                        json={"name": "Free", "quantity": 10},
+                    ).status_code
+                    == 201
+                )
                 assert events.post(path + "/publish", headers=first).status_code == 200
                 assert events.get(path).status_code == 200
                 visible = events.get("/api/events", headers=attendee)

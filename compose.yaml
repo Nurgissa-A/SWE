@@ -49,9 +49,21 @@ services:
       JWT_AUDIENCE: biletflow-api
       JWT_KEY_ID: biletflow-local-1
       IDENTITY_URL: http://python:8000
+      # Go applies its own business migrations (go_schema_migrations) at startup.
+      DATABASE_URL: postgres://biletflow:${POSTGRES_PASSWORD}@postgres:5432/biletflow?sslmode=disable
+      TICKET_QR_SECRET: ${TICKET_QR_SECRET:?Run python3 scripts/init_local.py first}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      SMTP_ADDR: mailpit:1025
+      MAIL_FROM: BiletFlow <no-reply@biletflow.local>
     volumes: ["./.secrets/jwt-public.pem:/run/keys/jwt-public.pem:ro"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     depends_on:
       python: {condition: service_healthy}
+      mailpit: {condition: service_started}
   mailpit:
     image: axllent/mailpit@sha256:0790692be935ea4420d085694f7985b1f692ca6a8771ab0e0bd8ba75ac180498
     ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]
