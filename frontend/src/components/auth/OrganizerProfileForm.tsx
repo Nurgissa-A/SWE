@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +13,7 @@ import { Form } from '@/components/ui/Form';
 import { TextInput } from '@/components/ui/TextInput';
 
 export function OrganizerProfileForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const { refreshUser } = useAuth();
   const [email, setEmail] = useState('');
@@ -59,7 +61,7 @@ export function OrganizerProfileForm() {
       <TextInput label="Organizer contact email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.currentTarget.value)} error={fieldErrors.contactEmail} />
       <TextInput label="Contact phone" type="tel" autoComplete="tel" maxLength={32} value={phone} onChange={(event) => setPhone(event.currentTarget.value)} error={fieldErrors.contactPhone} />
       <TextInput label="Payout simulation label" type="text" maxLength={100} value={simulationLabel} onChange={(event) => setSimulationLabel(event.currentTarget.value)} error={fieldErrors.payoutAccountPlaceholder} helpText="Optional demo-only label. Never enter real payout or banking information; the API accepts simulation labels prefixed with demo:." />
-      <Button type="submit" size="lg" loading={isSubmitting}>Create organizer profile</Button>
+      <Button type="submit" size="lg" loading={isSubmitting}>{t('Create organizer profile')}</Button>
     </Form>
   );
 }

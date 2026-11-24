@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { registerAccount } from '@/lib/auth';
@@ -11,6 +12,7 @@ import { Form } from '@/components/ui/Form';
 import { TextInput } from '@/components/ui/TextInput';
 
 export function RegisterForm() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -45,10 +47,10 @@ export function RegisterForm() {
     return (
       <div className="grid gap-4 text-center" role="status" aria-live="polite">
         <span className="mx-auto grid size-12 place-items-center rounded-full bg-success/10 text-lg font-bold text-success" aria-hidden="true">✓</span>
-        <h2 className="text-xl font-bold text-text">Check your inbox</h2>
-        <p className="text-sm leading-6 text-text-muted">We sent a verification link to <strong className="break-all text-text">{email}</strong>. Open it to verify your account, then come back to sign in.</p>
-        <Link href="/verify-email" className="font-semibold text-primary hover:text-primary-hover">Enter a verification token</Link>
-        <Link href="/login" className="text-sm font-semibold text-text-muted hover:text-text">Already verified? Sign in</Link>
+        <h2 className="text-xl font-bold text-text">{t('Check your inbox')}</h2>
+        <p className="text-sm leading-6 text-text-muted">{t('We sent a verification link to')} <strong className="break-all text-text">{email}</strong>{t('. Open it to verify your account, then come back to sign in.')}</p>
+        <Link href="/verify-email" className="font-semibold text-primary hover:text-primary-hover">{t('Enter a verification token')}</Link>
+        <Link href="/login" className="text-sm font-semibold text-text-muted hover:text-text">{t('Already verified? Sign in')}</Link>
       </div>
     );
   }
@@ -76,8 +78,8 @@ export function RegisterForm() {
         onChange={(event) => setPassword(event.currentTarget.value)}
         error={fieldErrors.password}
       />
-      <Button type="submit" size="lg" loading={isSubmitting} className="w-full">Create account</Button>
-      <p className="text-center text-sm text-text-muted">Already have an account? <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">Sign in</Link></p>
+      <Button type="submit" size="lg" loading={isSubmitting} className="w-full">{t('Create account')}</Button>
+      <p className="text-center text-sm text-text-muted">{t('Already have an account?')} <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">{t('Sign in')}</Link></p>
     </Form>
   );
 }

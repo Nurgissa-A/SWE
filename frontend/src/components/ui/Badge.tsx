@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 type BadgeProps = {
   children: ReactNode;
@@ -23,10 +26,11 @@ const darkToneClasses = {
 };
 
 export function Badge({ children, tone = 'default', onDark = false, className = '' }: BadgeProps) {
+  const { t } = useI18n();
   const tones = onDark ? darkToneClasses : toneClasses;
   return (
     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${tones[tone]} ${className}`}>
-      {children}
+      {typeof children === 'string' ? t(children.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())) : children}
     </span>
   );
 }

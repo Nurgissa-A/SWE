@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { resetPassword } from '@/lib/auth';
@@ -13,6 +14,7 @@ import { TextInput } from '@/components/ui/TextInput';
 type ResetPasswordFormProps = { token?: string };
 
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
+  const { t } = useI18n();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -47,8 +49,8 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   if (completed) {
     return (
       <div role="status" className="grid gap-4">
-        <p className="rounded-input border border-success/20 bg-success/5 px-4 py-3 text-sm leading-6 text-text">Your password has been updated. You can now sign in with your new password.</p>
-        <Link href="/login" className="justify-self-center font-semibold text-primary hover:text-primary-hover">Sign in</Link>
+        <p className="rounded-input border border-success/20 bg-success/5 px-4 py-3 text-sm leading-6 text-text">{t('Your password has been updated. You can now sign in with your new password.')}</p>
+        <Link href="/login" className="justify-self-center font-semibold text-primary hover:text-primary-hover">{t('Sign in')}</Link>
       </div>
     );
   }
@@ -78,9 +80,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         onChange={(event) => setConfirmation(event.currentTarget.value)}
         error={confirmationError}
       />
-      <Button type="submit" size="lg" loading={isSubmitting} disabled={!token} className="w-full">Update password</Button>
+      <Button type="submit" size="lg" loading={isSubmitting} disabled={!token} className="w-full">{t('Update password')}</Button>
       <p className="text-center text-sm text-text-muted">
-        Need another link? <Link href="/forgot-password" className="font-semibold text-primary hover:text-primary-hover">Request a reset</Link>
+        {t('Need another link?')} <Link href="/forgot-password" className="font-semibold text-primary hover:text-primary-hover">{t('Request a reset')}</Link>
       </p>
     </Form>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import { useId, type TextareaHTMLAttributes } from 'react';
 
 type TextAreaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> & {
@@ -10,6 +11,7 @@ type TextAreaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> & {
 };
 
 export function TextArea({ label, id, error, helpText, className = '', ...props }: TextAreaProps) {
+  const { t } = useI18n();
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descriptionId = `${inputId}-description`;
@@ -17,17 +19,18 @@ export function TextArea({ label, id, error, helpText, className = '', ...props 
   return (
     <div className="grid gap-2">
       <label htmlFor={inputId} className="text-sm font-semibold text-text">
-        {label}{props.required ? <span className="ml-1 text-error" aria-hidden="true">*</span> : null}
+        {t(label)}{props.required ? <span className="ml-1 text-error" aria-hidden="true">*</span> : null}
       </label>
       <textarea
         {...props}
+        placeholder={props.placeholder ? t(props.placeholder) : undefined}
         id={inputId}
         aria-invalid={Boolean(error)}
         aria-describedby={error || helpText ? descriptionId : undefined}
         className={`min-h-32 w-full resize-y rounded-input border bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted/70 ${error ? 'border-error' : 'border-border'} disabled:cursor-not-allowed disabled:bg-background disabled:text-text-muted ${className}`}
       />
-      {error ? <p id={descriptionId} className="text-sm text-error" role="alert">{error}</p> : null}
-      {!error && helpText ? <p id={descriptionId} className="text-sm text-text-muted">{helpText}</p> : null}
+      {error ? <p id={descriptionId} className="text-sm text-error" role="alert">{t(error)}</p> : null}
+      {!error && helpText ? <p id={descriptionId} className="text-sm text-text-muted">{t(helpText)}</p> : null}
     </div>
   );
 }

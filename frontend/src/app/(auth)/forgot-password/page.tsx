@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'Forgot password' };
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthShell eyebrow="Account recovery" title="Reset your password" description="Enter the email address on your account and we&apos;ll send a secure reset link if it exists.">
+    <AuthShell eyebrow="Account recovery" title="Reset your password" description={'Enter the email address on your account and we\'ll send a secure reset link if it exists.'}>
       <ForgotPasswordForm />
     </AuthShell>
   );

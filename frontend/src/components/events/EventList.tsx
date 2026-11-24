@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import Link from 'next/link';
 import type { ApiEvent } from '@/hooks/useEvents';
 import { EventCard } from './EventCard';
@@ -19,9 +20,10 @@ type EventListProps = {
 };
 
 export function EventList({ events, isLoading, error, onRetry, detailsHref, detailsLabel, emptyTitle = 'No events to show yet', emptyDescription = 'When organizers publish an event, it will appear here.' }: EventListProps) {
+  const { t } = useI18n();
   if (isLoading) {
     return (
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading events">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label={t('Loading events')}>
         <div className="col-span-full py-8 text-center"><Spinner label="Finding events" /></div>
         {[0, 1, 2].map((item) => <div key={item} className="h-72 animate-pulse rounded-card bg-secondary" />)}
       </div>
@@ -37,7 +39,7 @@ export function EventList({ events, isLoading, error, onRetry, detailsHref, deta
     return (
       <div className="mx-auto max-w-xl">
         <ErrorMessage message={message} onRetry={onRetry} />
-        {status === 401 ? <Link href="/login" className="mt-4 inline-flex font-semibold text-primary hover:text-primary-hover">Sign in</Link> : null}
+        {status === 401 ? <Link href="/login" className="mt-4 inline-flex font-semibold text-primary hover:text-primary-hover">{t('Sign in')}</Link> : null}
       </div>
     );
   }
@@ -45,7 +47,7 @@ export function EventList({ events, isLoading, error, onRetry, detailsHref, deta
   if (!events?.length) {
     return (
       <div className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
-        <span className="mx-auto grid size-12 place-items-center rounded-full bg-secondary text-lg font-bold text-primary" aria-hidden="true">B</span>
+        <span className="mx-auto grid size-12 place-items-center rounded-full bg-secondary text-lg font-bold text-primary" aria-hidden="true">{t('B')}</span>
         <h2 className="mt-4 text-xl font-bold text-text">{emptyTitle}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-text-muted">{emptyDescription}</p>
       </div>
