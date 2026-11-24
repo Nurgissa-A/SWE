@@ -1,13 +1,15 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useI18n } from '../i18n';
 
 // Shown on any screen when loading fails (no internet, server down, etc.)
 export default function ErrorView({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useI18n();
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>⚠️</Text>
       <Text style={styles.message}>{message}</Text>
       <Pressable style={styles.button} onPress={onRetry}>
-        <Text style={styles.buttonText}>Try again</Text>
+        <Text style={styles.buttonText}>{t('Try again')}</Text>
       </Pressable>
     </View>
   );

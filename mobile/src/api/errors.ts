@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { clearSession } from './session';
+import { t } from '../i18n';
 
 // Same shape as the backend's error format: { error: { code, message } }
 export class ApiError extends Error {
@@ -12,8 +13,9 @@ export class ApiError extends Error {
 }
 
 export function friendlyMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  return 'Something went wrong. Please try again.';
+  // Messages are English keys (from the app or the servers); show them in the chosen language.
+  if (err instanceof ApiError) return t(err.message);
+  return t('Something went wrong. Please try again.');
 }
 
 // Use this in every screen's catch block.
@@ -22,7 +24,7 @@ export function friendlyMessage(err: unknown): string {
 export async function handleApiError(err: unknown, setError: (message: string) => void) {
   if (err instanceof ApiError && err.code === 'unauthorized') {
     await clearSession();
-    Alert.alert('Session expired', 'Please sign in again.');
+    Alert.alert(t('Session expired'), t('Please sign in again.'));
     router.replace('/');
     return;
   }

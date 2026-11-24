@@ -2,8 +2,10 @@ import { useCallback, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { USE_REAL_BACKEND } from '../api/config';
+import { useI18n } from '../i18n';
 
-// Buttons for testing without a printed QR code
+// Buttons for testing without a printed QR code (fake data only)
 const TEST_CODES = [
   { label: 'Valid', code: 'BF-T-1001' },
   { label: 'Used', code: 'BF-T-1002' },
@@ -13,7 +15,8 @@ const TEST_CODES = [
 ];
 
 export default function ScanScreen() {
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
+  const { t } = useI18n();
+  const { eventId, canUndo } = useLocalSearchParams<{ eventId: string; canUndo?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const locked = useRef(false); // stops the camera from scanning the same code 10 times
 
@@ -27,7 +30,7 @@ export default function ScanScreen() {
   function openResult(code: string) {
     if (locked.current) return;
     locked.current = true;
-    router.push({ pathname: '/result', params: { eventId, code } });
+    router.push({ pathname: '/result', params: { eventId, code, canUndo } });
   }
 
   if (!permission) {
@@ -37,9 +40,9 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.center}>
-        <Text style={styles.message}>Camera access is needed to scan tickets.</Text>
+        <Text style={styles.message}>{t('Camera access is needed to scan tickets.')}</Text>
         <Pressable style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Allow camera</Text>
+          <Text style={styles.buttonText}>{t('Allow camera')}</Text>
         </Pressable>
       </View>
     );
@@ -55,15 +58,19 @@ export default function ScanScreen() {
       />
       <View style={styles.frame} />
       <View style={styles.bottom}>
-        <Text style={styles.hint}>Point the camera at the ticket QR code</Text>
-        <Text style={styles.testLabel}>Test without a QR (demo data):</Text>
-        <View style={styles.testRow}>
-          {TEST_CODES.map((t) => (
-            <Pressable key={t.code} style={styles.testButton} onPress={() => openResult(t.code)}>
-              <Text style={styles.testText}>{t.label}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.hint}>{t('Point the camera at the ticket QR code')}</Text>
+        {USE_REAL_BACKEND ? null : (
+          <>
+            <Text style={styles.testLabel}>{t('Test without a QR (demo data):')}</Text>
+            <View style={styles.testRow}>
+              {TEST_CODES.map((tc) => (
+                <Pressable key={tc.code} style={styles.testButton} onPress={() => openResult(tc.code)}>
+                  <Text style={styles.testText}>{t(tc.label)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
       </View>
     </View>
   );

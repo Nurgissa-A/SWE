@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { storage } from './storage';
 import type { User } from './mock';
 
 // Keeps the login token in the phone's secure storage (Keychain on iPhone),
@@ -16,12 +16,12 @@ export function isStaff(user: User): boolean {
 }
 
 export async function saveSession(session: Session): Promise<void> {
-  await SecureStore.setItemAsync(KEY, JSON.stringify(session));
+  await storage.set(KEY, JSON.stringify(session));
 }
 
 export async function loadSession(): Promise<Session | null> {
   try {
-    const raw = await SecureStore.getItemAsync(KEY);
+    const raw = await storage.get(KEY);
     return raw ? (JSON.parse(raw) as Session) : null;
   } catch {
     return null;
@@ -29,5 +29,5 @@ export async function loadSession(): Promise<Session | null> {
 }
 
 export async function clearSession(): Promise<void> {
-  await SecureStore.deleteItemAsync(KEY);
+  await storage.remove(KEY);
 }

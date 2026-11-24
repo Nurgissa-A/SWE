@@ -20,6 +20,7 @@ export type EventItem = {
   venue: string;
   registered: number | null; // null = not available from the backend yet
   checkedIn: number | null;
+  canUndo?: boolean; // real backend: may this account undo check-ins here? (fake data: always)
 };
 
 type TicketStatus = 'valid' | 'checked_in' | 'cancelled' | 'refunded';
@@ -34,14 +35,18 @@ type Ticket = {
 };
 
 export type VerifyResult = {
-  kind: 'valid' | 'already_used' | 'cancelled' | 'refunded' | 'wrong_event' | 'campaign' | 'not_found';
-  code: string;
+  // 'admitted' = the real backend checked the ticket in as part of the scan (one step, no double entry)
+  // 'closed' = the event is not published, so nobody can be checked in
+  kind: 'valid' | 'admitted' | 'already_used' | 'cancelled' | 'refunded' | 'wrong_event' | 'campaign' | 'not_found' | 'closed';
+  code: string; // the ticket code (e.g. GMRX-G994), not the scanned QR text
+  ticketId?: string; // real backend only
   attendeeName?: string;
   ticketType?: string;
   checkedInAt?: string;
 };
 
 export type AttendeeItem = {
+  id?: string; // real backend only
   code: string;
   attendeeName: string;
   ticketType: string;

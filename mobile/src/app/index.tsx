@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { login, getMe } from '../api';
+import { login, getMe, canUseCheckIn } from '../api';
 import { USE_REAL_BACKEND } from '../api/config';
-import { saveSession, loadSession, clearSession, isStaff } from '../api/session';
+import { saveSession, loadSession, clearSession } from '../api/session';
+import { LanguagePicker, useI18n } from '../i18n';
 import { ApiError, friendlyMessage } from '../api/errors';
 
 export default function LoginScreen() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ export default function LoginScreen() {
       }
       try {
         const user = await getMe(); // is the saved login still valid?
-        if (isStaff(user)) {
+        if (await canUseCheckIn(user)) {
           router.replace('/events');
           return;
         }
@@ -44,17 +46,19 @@ export default function LoginScreen() {
   async function handleLogin() {
     setError('');
     if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
+      setError(t('Please enter your email and password.'));
       return;
     }
     setBusy(true);
     try {
       const result = await login(email, password);
-      if (!isStaff(result.user)) {
-        setError('This app is only for event staff. Attendees can find their tickets on the BiletFlow website.');
+      // Save first: checking for assigned events needs the token.
+      await saveSession(result);
+      if (!(await canUseCheckIn(result.user))) {
+        await clearSession();
+        setError(t('This app is only for event staff. Attendees can find their tickets on the BiletFlow website.'));
         return;
       }
-      await saveSession(result);
       router.replace('/events');
     } catch (err) {
       setError(friendlyMessage(err));
@@ -73,12 +77,13 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>BiletFlow Check-in</Text>
-      <Text style={styles.subtitle}>Sign in as event staff</Text>
+      <Text style={styles.title}>{t('BiletFlow Check-in')}</Text>
+      <Text style={styles.subtitle}>{t('Sign in as event staff')}</Text>
+      <View style={{ marginBottom: 24 }}><LanguagePicker /></View>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={t('Email')}
         placeholderTextColor="#888"
         autoCapitalize="none"
         autoCorrect={false}
@@ -88,7 +93,7 @@ export default function LoginScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder={t('Password')}
         placeholderTextColor="#888"
         secureTextEntry
         value={password}
@@ -99,11 +104,11 @@ export default function LoginScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Pressable style={[styles.button, busy && styles.buttonDisabled]} onPress={handleLogin} disabled={busy}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('Sign in')}</Text>}
       </Pressable>
 
       <Text style={styles.demo}>
-        {USE_REAL_BACKEND ? 'Connected to the BiletFlow backend' : 'Demo data · admin@biletflow.kz / admin123'}
+        {USE_REAL_BACKEND ? t('Connected to the BiletFlow backend') : t('Demo data · admin@biletflow.kz / admin123')}
       </Text>
     </View>
   );
@@ -112,7 +117,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
   title: { fontSize: 28, fontWeight: '700', textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 32 },
+  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 16 },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 10,
     padding: 14, fontSize: 16, marginBottom: 12, color: '#000',
