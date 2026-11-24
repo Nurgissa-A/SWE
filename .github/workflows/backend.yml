@@ -8,6 +8,7 @@ permissions:
 jobs:
   python:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     services:
       postgres:
         image: postgres:16-alpine
@@ -33,7 +34,7 @@ jobs:
       - run: ruff check backend-python scripts
       - run: ruff format --check backend-python scripts
       - run: python scripts/sync_python_contract.py && git diff --exit-code -- docs/openapi.yaml
-      - run: pytest backend-python/tests -v
+      - run: pytest backend-python/tests -v --durations=10 -o faulthandler_timeout=60
   go:
     runs-on: ubuntu-latest
     defaults:
