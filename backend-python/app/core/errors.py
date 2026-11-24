@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
 
@@ -18,6 +19,14 @@ def install_error_handlers(app: FastAPI) -> None:
         # Do not echo input values (passwords and tokens) from Pydantic errors.
         return JSONResponse(
             {"error": {"code": "422", "message": "Request validation failed"}}, status_code=422
+        )
+
+    @app.exception_handler(OperationalError)
+    @app.exception_handler(TimeoutError)
+    async def storage_unavailable(request: Request, exc: Exception):
+        return JSONResponse(
+            {"error": {"code": "503", "message": "Identity storage unavailable; retry later"}},
+            status_code=503,
         )
 
     @app.exception_handler(Exception)

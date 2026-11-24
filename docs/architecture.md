@@ -26,6 +26,23 @@ Every protected Python request looks up the current user in PostgreSQL and rejec
 
 Web clients use the existing `token` response field; secure client-side storage/session design remains the frontend owner's responsibility. No refresh/logout endpoint is added to the contract: client sign-out clears its bearer token; operator/reset revocation is immediate via live identity, otherwise bearer tokens expire within the configured TTL.
 
+
+### Identity mutation locking
+
+Python locks User before ActionToken for all credential actions. A reset that
+invalidates sibling tokens therefore cannot deadlock with another reset holding
+one of those tokens. Token expiry is checked after waits. Authenticated account
+writes acquire the user lock before checking current active/verified/version/role
+state, serializing them with the operator CLI and resets. Pool/connect/SQL/lock
+waits are bounded; unavailable storage is a sanitized 503. Read-only `/users/me`
+continues to read current committed identity without holding a write lock.
+
+This follows PostgreSQL's [consistent lock-order guidance](https://www.postgresql.org/docs/16/explicit-locking.html#LOCKING-DEADLOCKS)
+and SQLAlchemy's [row-lock/populate-existing semantics](https://docs.sqlalchemy.org/en/20/orm/session_api.html#sqlalchemy.orm.Session.get).
+Regression tests coordinate actual PostgreSQL locks and observe blocked requests;
+they do not replace concurrency evidence with mocked repositories.
+
+
 ## ADR 004 — Email delivery boundary
 
 The injectable SMTP adapter supports STARTTLS and credentials. Mailpit is a local sink only. Identity action tokens contain 256 random bits and are stored hashed; raw tokens appear only in the email and tests. Synchronous SMTP failure returns 503 and rolls back the pending registration/reset, so the caller can retry. A narrow SMTP-accepted/database-commit failure window can produce an unusable emailed link; this is explicitly not a transactional delivery guarantee. A durable encrypted outbox/retry design is future work, not a claimed production feature. Do not deploy this academic adapter as a production delivery system without that review.

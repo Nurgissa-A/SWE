@@ -42,17 +42,21 @@ def settings(key_files):
 @pytest.fixture(scope="session")
 def database_url():
     url = os.getenv("TEST_DATABASE_URL")
+    if not url and os.getenv("CI", "").lower() == "true":
+        pytest.fail("CI must configure TEST_DATABASE_URL; database tests cannot be skipped")
     if not url:
         pytest.skip("TEST_DATABASE_URL must point to a disposable PostgreSQL *_test database")
-    if not make_url(url).database.endswith("_test"):
+    if not (make_url(url).database or "").endswith("_test"):
         pytest.fail("Refusing destructive tests outside a *_test database")
     original = os.environ.get("DATABASE_URL")
     os.environ["DATABASE_URL"] = url
-    command.upgrade(Config(str(Path(__file__).parents[1] / "alembic.ini")), "head")
-    if original is None:
-        os.environ.pop("DATABASE_URL", None)
-    else:
-        os.environ["DATABASE_URL"] = original
+    try:
+        command.upgrade(Config(str(Path(__file__).parents[1] / "alembic.ini")), "head")
+    finally:
+        if original is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = original
     return url
 
 

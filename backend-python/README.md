@@ -23,7 +23,7 @@ Use Python 3.12. Create a virtual environment, install the complete lock and the
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -r backend-python/requirements.lock
-.venv/bin/pip install --no-deps -e backend-python
+.venv/bin/pip install --no-deps --no-build-isolation -e backend-python
 cp backend-python/.env.example backend-python/.env
 # Set DATABASE_URL to the actual local password and database.
 cd backend-python
@@ -68,3 +68,53 @@ export TEST_DATABASE_URL='postgresql+psycopg://biletflow:YOUR_LOCAL_PASSWORD@loc
 ```
 
 CI creates this database independently. Tests inject a memory mail adapter and temporary RSA keys; real mail/production credentials are never required. See [API contract/tooling](../docs/api-contract.md), [ERD](../docs/erd.md) and [architecture decisions](../docs/architecture.md). SMTP delivery's transactional limitation and production deployment boundaries are documented there.
+
+## Completed concurrency and failure behavior
+
+All identity mutations use a consistent account-first row-lock order. Verification
+and reset resolve the token owner, lock the user, then lock/recheck the token and
+its expiry. Concurrent resets through different links produce one success and
+one invalid-token response, with a single token-version increment. Organizer
+onboarding, profile changes and user updates recheck live status, token version
+and role after acquiring the user lock. An in-flight request cannot restore a
+revoked role or mutate an account disabled while it waited.
+
+PostgreSQL waits are bounded. Configure these positive, validated settings in the
+native environment or root Compose `.env`:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DB_POOL_TIMEOUT_SECONDS` | 5 | Pool checkout wait; pool remains 5 + 5 overflow |
+| `DB_CONNECT_TIMEOUT_SECONDS` | 5 | PostgreSQL connection timeout |
+| `DB_STATEMENT_TIMEOUT_MS` | 10000 | Per-statement timeout |
+| `DB_LOCK_TIMEOUT_MS` | 3000 | Lock acquisition timeout |
+
+Connection/statement/lock/pool failures return a sanitized 503; SQL parameters
+are hidden. `/ready` also returns 503 when storage is unavailable. The SMTP
+accepted-message/database-commit boundary remains as documented in architecture;
+Mailpit is the intended development mail delivery adapter.
+
+Python accepts only canonical UUID `sub`/`jti`, known roles, nonnegative integer
+`ver` and finite numeric dates, rejecting booleans/nonfinite dates as 401.
+Fractional numeric dates remain valid. Issued tokens and the public contract are
+unchanged; malformed custom tokens formerly accepted by Python are tightened to
+match the shared verifier boundary.
+
+For Compose, `FRONTEND_URL` sets email link origin; `PYTHON_CORS_ORIGINS` is a
+JSON array (default `["http://localhost:3000"]`). Native Python continues to use
+`CORS_ORIGINS` as a JSON array. The Python-specific Compose name avoids colliding
+with Go's separate CORS configuration. Keep any custom origins explicit.
+
+The SMTP smoke now updates both user/profile, restarts Python, and verifies
+identical persisted records using the same JWT. It requires a local Compose
+stack and must not target production:
+
+```sh
+.venv/bin/python scripts/smoke_identity.py
+.venv/bin/python scripts/smoke_integration.py
+```
+
+The full PostgreSQL suite now has 67 passing tests, including deterministic
+concurrent account actions, post-lock authorization and real lock-timeout error
+handling. `CI=true` without `TEST_DATABASE_URL` fails instead of silently skipping
+the identity tests. See [current handover](../docs/implementation-weeks-1-4.md).

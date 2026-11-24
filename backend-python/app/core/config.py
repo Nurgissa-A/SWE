@@ -9,6 +9,10 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     database_url: str = "postgresql+psycopg://localhost/biletflow"
+    db_pool_timeout_seconds: int = Field(default=5, ge=1, le=60)
+    db_connect_timeout_seconds: int = Field(default=5, ge=1, le=60)
+    db_statement_timeout_ms: int = Field(default=10000, ge=100, le=60000)
+    db_lock_timeout_ms: int = Field(default=3000, ge=100, le=60000)
     jwt_private_key_file: Path = Path(".secrets/jwt-private.pem")
     jwt_public_key_file: Path = Path(".secrets/jwt-public.pem")
     jwt_key_id: str = "biletflow-local-1"
