@@ -6,12 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "generate:api": "openapi-typescript ../docs/openapi.yaml -o src/lib/api-types.ts"
+    "generate:api": "openapi-typescript ../docs/openapi.yaml -o src/lib/api-types.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource/onest": "^5.3.1",
     "@fontsource/unbounded": "^5.3.0",
-    "next": "16.3.4",
+    "next": "16.4.6",
     "openapi-fetch": "^0.17.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

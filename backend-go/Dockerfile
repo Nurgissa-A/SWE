@@ -7,5 +7,7 @@ FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195e
 RUN apk add --no-cache ca-certificates && adduser -D -u 10001 app
 COPY --from=build /api /api
 USER app
+ARG RELEASE_COMMIT=development
+LABEL org.opencontainers.image.revision=$RELEASE_COMMIT
 EXPOSE 8080
 ENTRYPOINT ["/api"]

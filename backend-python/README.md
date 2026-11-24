@@ -1,6 +1,6 @@
-# BiletFlow Python identity service
+# BiletFlow Python identity and platform service
 
-Owner: Aliar. Python owns identity, verification and organizer profiles; Go owns events and future ticket/order business data.
+Owner: Aliar. Python owns identity, verification, organizer profiles, support, notifications and platform settings; Go owns events and future ticket/order business data.
 
 ## Docker development
 
@@ -67,7 +67,7 @@ export TEST_DATABASE_URL='postgresql+psycopg://biletflow:YOUR_LOCAL_PASSWORD@loc
 .venv/bin/pytest backend-python/tests -v
 ```
 
-CI creates this database independently. Tests inject a memory mail adapter and temporary RSA keys; real mail/production credentials are never required. See [API contract/tooling](../docs/api-contract.md), [ERD](../docs/erd.md) and [architecture decisions](../docs/architecture.md). SMTP delivery's transactional limitation and production deployment boundaries are documented there.
+CI creates this database independently. Tests inject a memory mail adapter and temporary RSA keys; real mail/production credentials are never required. See [API contract/tooling](../docs/api-contract.md), [ERD](../docs/erd.md) and [architecture decisions](../docs/architecture.md). SMTP delivery's retry/acknowledgement boundary and production deployment boundaries are documented there.
 
 ## Completed concurrency and failure behavior
 
@@ -114,7 +114,22 @@ stack and must not target production:
 .venv/bin/python scripts/smoke_integration.py
 ```
 
-The full PostgreSQL suite now has 67 passing tests, including deterministic
+The PostgreSQL suite includes deterministic
 concurrent account actions, post-lock authorization and real lock-timeout error
 handling. `CI=true` without `TEST_DATABASE_URL` fails instead of silently skipping
 the identity tests. See [current handover](../docs/implementation-weeks-1-4.md).
+
+## Weeks 5–12 platform and local release
+
+Registration now commits an encrypted durable notification job before returning 201;
+SMTP transport runs in `notification-worker` with visible retry/failure state.
+Logout revokes only the current session; reset and administrative changes revoke
+all prior sessions. Support, notifications, admin/settings and image API behavior
+are in [Python platform](../docs/python-platform.md) and shared OpenAPI.
+
+For the final local Docker HTTPS setup run `python scripts/local_release.py --build`
+from a clean committed checkout, then `python scripts/smoke_platform.py`. See
+[release and recovery](../docs/local-release.md) for CA trust, private keys, DB ACLs,
+backup/restore, exact-source packaging and compatible image rollback.
+[Weeks 1–12 matrix](../docs/aliar-weeks-1-12.md) distinguishes completed Aliar work
+from Go/client and final team acceptance dependencies.

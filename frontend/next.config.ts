@@ -4,11 +4,13 @@ const identityApiUrl = process.env.IDENTITY_API_URL ?? 'http://localhost:8000';
 const eventsApiUrl = process.env.EVENTS_API_URL ?? 'http://localhost:8080';
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   turbopack: { root: process.cwd() },
   async rewrites() {
     return [
       { source: '/api/auth/:path*', destination: `${identityApiUrl}/api/auth/:path*` },
       { source: '/api/users/:path*', destination: `${identityApiUrl}/api/users/:path*` },
+      { source: '/api/event-images/:path*', destination: `${identityApiUrl}/api/event-images/:path*` },
       { source: '/api/organizer-profile', destination: `${identityApiUrl}/api/organizer-profile` },
       { source: '/api/events', destination: `${eventsApiUrl}/api/events` },
       { source: '/api/events/:path*', destination: `${eventsApiUrl}/api/events/:path*` },

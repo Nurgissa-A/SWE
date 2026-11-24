@@ -94,3 +94,43 @@ jobs:
       - name: Stop isolated CI services
         if: always()
         run: docker compose down
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend-python/requirements.lock
+      - run: python -m pip install -r backend-python/requirements.lock
+      - run: python scripts/local_release.py --build
+      - run: docker compose run --rm -T --no-deps db-permissions python -m app.db.roles check
+      - run: python scripts/smoke_platform.py
+      - run: python scripts/backup_db.py --output .backups/ci.dump
+      - run: python scripts/rehearse_restore.py --backup .backups/ci.dump --target biletflow_ci_restore_test
+      - run: python scripts/backup_assets.py --output .backups/ci-images.tar.gz
+      - run: python scripts/package_release.py
+      - name: Diagnostics on failure
+        if: failure()
+        run: docker compose -f compose.yaml -f deploy/compose.https.yaml logs --no-color --tail 60 migrate db-permissions python notification-worker gateway
+      - name: Stop isolated release services
+        if: always()
+        run: docker compose -f compose.yaml -f deploy/compose.https.yaml down
