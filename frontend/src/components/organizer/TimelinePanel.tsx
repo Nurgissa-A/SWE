@@ -29,13 +29,23 @@ const TYPES = [['', 'Everything'], ['event', 'Event changes'], ['ticket_type', '
 export function TimelinePanel({ event }: { event: ApiEvent }) {
   const { t, dateTime } = useI18n();
   const [type, setType] = useState('');
-  const { data, error, isLoading } = useApi<TimelineEntry[]>(`timeline:${event.id}:${type}`,
-    () => call(api.GET('/api/events/{eventId}/timeline', { params: { path: { eventId: event.id }, query: type ? { type } : {} } })));
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const query = { ...(type ? { type } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}) };
+  const { data, error, isLoading } = useApi<TimelineEntry[]>(`timeline:${event.id}:${type}:${from}:${to}`,
+    () => call(api.GET('/api/events/{eventId}/timeline', { params: { path: { eventId: event.id }, query } })));
   return (
-    <Panel title="Activity history" action={
-      <select aria-label={t('Filter history')} value={type} onChange={(e) => setType(e.currentTarget.value)} className="min-h-10 rounded-input border border-border bg-surface px-3 text-sm">
-        {TYPES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
-      </select>}>
+    <Panel title="Activity history">
+      {/* SRS 4.16: filter history by date range and activity type. */}
+      <div className="mb-4 flex flex-wrap items-end gap-3 text-sm">
+        <label className="grid gap-1">{t('From')}<input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.currentTarget.value)} className="min-h-10 rounded-input border border-border bg-surface px-3" /></label>
+        <label className="grid gap-1">{t('To')}<input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.currentTarget.value)} className="min-h-10 rounded-input border border-border bg-surface px-3" /></label>
+        <label className="grid gap-1">{t('Filter history')}
+          <select value={type} onChange={(e) => setType(e.currentTarget.value)} className="min-h-10 rounded-input border border-border bg-surface px-3">
+            {TYPES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
+          </select>
+        </label>
+      </div>
       {isLoading ? <Spinner /> : error ? <ErrorMessage message={getApiErrorMessage(error)} /> : (data ?? []).length === 0 ? <p className="text-sm text-text-muted">{t('Nothing recorded yet.')}</p> : (
         <ol className="relative grid gap-4 border-l border-border pl-5">
           {(data ?? []).map((entry) => (

@@ -8,7 +8,8 @@
  * Type: Unbounded for display headings and big numbers, Onest for everything else.
  */
 @theme inline {
-  --color-primary: #0a7ea4;
+  /* #097193 keeps the brand hue but reaches WCAG 2.1 AA contrast (4.5:1) as text on every light surface. */
+  --color-primary: #097193;
   --color-primary-hover: #075f7c;
   --color-secondary: #e3ecf1;
   --color-error: #b42318;
@@ -36,6 +37,27 @@
 @layer base {
   * {
     box-sizing: border-box;
+  }
+
+  /* Grid tracks and items otherwise grow to their widest content (long Kazakh words, tables),
+     which made pages wider than a phone. Responsive grid-cols-* utilities still override this. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grid > * {
+    min-width: 0;
+  }
+
+  /* Keeps screen-reader-only labels (position: absolute) inside horizontally scrolling tables, so
+     they cannot widen the page on phones. */
+  .overflow-x-auto {
+    position: relative;
+  }
+
+  /* Long e-mail addresses, links and Kazakh words wrap instead of widening the page. */
+  body {
+    overflow-wrap: break-word;
   }
 
   html {

@@ -114,7 +114,7 @@ function Events() {
             return (
               <li key={id} className="grid gap-2 rounded-card border border-border p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <Link href={`/events/${id}`} className="font-semibold text-primary">{str(e.title)}</Link>
                     <p className="text-sm text-text-muted">{dateTime(str(e.startsAt))} · {str(e.city)} · {str(e.organizer)} · {t('{n} sold', { n: num(e.sold) })}</p>
                   </div>

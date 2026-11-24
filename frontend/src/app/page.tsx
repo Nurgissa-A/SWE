@@ -21,7 +21,7 @@ export default function HomePage() {
           <p className="inline-flex items-center gap-2 rounded-full border border-navy-line bg-navy-raised px-3 py-1.5 text-xs font-semibold text-mist">
             <span className="size-2 rounded-full bg-mint" aria-hidden="true" /> {t('Made for moments that stay with you')}
           </p>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-surface sm:text-5xl lg:text-[3.5rem]">{t('Make plans.')}<br /><span className="text-mist">{t('Find your people.')}</span></h1>
+          <h1 className="mt-6 text-3xl font-bold leading-[1.1] tracking-tight break-words text-surface sm:text-5xl lg:text-[3.5rem]">{t('Make plans.')}<br /><span className="text-mist">{t('Find your people.')}</span></h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-mist sm:text-lg">{t('A better night out starts with the right idea. Find events worth leaving home for, or bring your own to life.')}</p>
           <div className="mt-8"><EventSearch /></div>
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-mist">
