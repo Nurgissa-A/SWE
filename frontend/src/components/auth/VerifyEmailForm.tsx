@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { verifyEmailToken } from '@/lib/auth';
@@ -12,6 +13,7 @@ import { TextInput } from '@/components/ui/TextInput';
 type VerifyEmailFormProps = { initialToken: string };
 
 export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
+  const { t } = useI18n();
   const [token, setToken] = useState(initialToken);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,9 +41,9 @@ export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
     return (
       <div className="grid gap-4 text-center" role="status" aria-live="polite">
         <span className="mx-auto grid size-12 place-items-center rounded-full bg-success/10 text-lg font-bold text-success" aria-hidden="true">✓</span>
-        <h2 className="text-xl font-bold text-text">Email verified</h2>
-        <p className="text-sm leading-6 text-text-muted">Your BiletFlow account is ready. Sign in to continue.</p>
-        <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">Continue to sign in</Link>
+        <h2 className="text-xl font-bold text-text">{t('Email verified')}</h2>
+        <p className="text-sm leading-6 text-text-muted">{t('Your BiletFlow account is ready. Sign in to continue.')}</p>
+        <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">{t('Continue to sign in')}</Link>
       </div>
     );
   }
@@ -59,8 +61,8 @@ export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
         onChange={(event) => setToken(event.currentTarget.value)}
         helpText="The token is in the verification link sent to your email."
       />
-      <Button type="submit" size="lg" loading={isSubmitting} className="w-full">Verify email</Button>
-      <p className="text-center text-sm text-text-muted">Already verified? <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">Sign in</Link></p>
+      <Button type="submit" size="lg" loading={isSubmitting} className="w-full">{t('Verify email')}</Button>
+      <p className="text-center text-sm text-text-muted">{t('Already verified?')} <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">{t('Sign in')}</Link></p>
     </Form>
   );
 }

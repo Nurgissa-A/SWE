@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,6 +15,7 @@ import { TextInput } from '@/components/ui/TextInput';
 type LoginFormProps = { returnTo?: string };
 
 export function LoginForm({ returnTo }: LoginFormProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -66,11 +68,11 @@ export function LoginForm({ returnTo }: LoginFormProps) {
           onChange={(event) => setPassword(event.currentTarget.value)}
           error={fieldErrors.password}
         />
-        <Link href="/forgot-password" className="justify-self-end text-sm font-semibold text-primary hover:text-primary-hover">Forgot password?</Link>
+        <Link href="/forgot-password" className="justify-self-end text-sm font-semibold text-primary hover:text-primary-hover">{t('Forgot password?')}</Link>
       </div>
-      <Button type="submit" size="lg" loading={isSubmitting} className="w-full">Sign in</Button>
+      <Button type="submit" size="lg" loading={isSubmitting} className="w-full">{t('Sign in')}</Button>
       <p className="text-center text-sm text-text-muted">
-        New to BiletFlow? <Link href="/register" className="font-semibold text-primary hover:text-primary-hover">Create an account</Link>
+        {t('New to BiletFlow?')} <Link href="/register" className="font-semibold text-primary hover:text-primary-hover">{t('Create an account')}</Link>
       </p>
     </Form>
   );

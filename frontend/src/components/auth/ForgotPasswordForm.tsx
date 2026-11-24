@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { requestPasswordReset } from '@/lib/auth';
@@ -11,6 +12,7 @@ import { Form } from '@/components/ui/Form';
 import { TextInput } from '@/components/ui/TextInput';
 
 export function ForgotPasswordForm() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [formError, setFormError] = useState('');
@@ -39,7 +41,7 @@ export function ForgotPasswordForm() {
       {formError ? <ErrorMessage message={formError} /> : null}
       {submitted ? (
         <p role="status" className="rounded-input border border-success/20 bg-success/5 px-4 py-3 text-sm leading-6 text-text">
-          If an account matches that email, a password reset link is on its way.
+          {t('If an account matches that email, a password reset link is on its way.')}
         </p>
       ) : (
         <>
@@ -52,11 +54,11 @@ export function ForgotPasswordForm() {
             onChange={(event) => setEmail(event.currentTarget.value)}
             error={emailError}
           />
-          <Button type="submit" size="lg" loading={isSubmitting} className="w-full">Send reset link</Button>
+          <Button type="submit" size="lg" loading={isSubmitting} className="w-full">{t('Send reset link')}</Button>
         </>
       )}
       <p className="text-center text-sm text-text-muted">
-        Remembered your password? <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">Sign in</Link>
+        {t('Remembered your password?')} <Link href="/login" className="font-semibold text-primary hover:text-primary-hover">{t('Sign in')}</Link>
       </p>
     </Form>
   );

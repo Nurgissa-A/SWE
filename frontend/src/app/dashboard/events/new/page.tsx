@@ -7,8 +7,10 @@ import { eventsApi } from '@/lib/api-client';
 import { toApiRequestError } from '@/lib/api-errors';
 import { toEventPayload } from '@/lib/event-payload';
 import { useRefreshEventLists } from '@/hooks/useEvents';
+import { useI18n } from '@/lib/i18n';
 
 export default function NewEventPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const refreshEventLists = useRefreshEventLists();
 
@@ -18,16 +20,16 @@ export default function NewEventPage() {
     if (error) throw toApiRequestError(error, statusCode);
     if (!data) throw toApiRequestError(undefined, statusCode);
     await refreshEventLists();
-    router.push(`/dashboard/events/${data.id}/preview`);
+    router.push(`/dashboard/events/${data.id}?tab=tickets`);
   }
 
   return (
     <section className="mx-auto max-w-3xl">
-      <Link href="/dashboard/events" className="text-sm font-semibold text-primary hover:text-primary-hover">← My events</Link>
+      <Link href="/dashboard/events" className="text-sm font-semibold text-primary hover:text-primary-hover">← {t('My events')}</Link>
       <div className="mt-5 rounded-card border border-border bg-surface p-5 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">New draft</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-text">Create an event</h1>
-        <p className="mt-2 mb-7 text-sm leading-6 text-text-muted">Add the essential details first. You can review the attendee preview before publishing.</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{t('New draft')}</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-text">{t('Create an event')}</h1>
+        <p className="mt-2 mb-7 text-sm leading-6 text-text-muted">{t('Add the essential details first. Next you add ticket types, then publish.')}</p>
         <EventForm submitLabel="Create draft" onSubmit={createEvent} />
       </div>
     </section>

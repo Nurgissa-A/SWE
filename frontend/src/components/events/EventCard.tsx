@@ -1,9 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import type { components } from '@/lib/api-types';
-import { eventDateParts, formatEventDate } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 import { Badge } from '@/components/ui/Badge';
 
-type EventCardData = Pick<components['schemas']['Event'], 'id' | 'title' | 'startsAt' | 'category' | 'status'>;
+type EventCardData = Pick<components['schemas']['Event'], 'id' | 'title' | 'startsAt' | 'category' | 'status' | 'timezone' | 'city' | 'venueName' | 'priceFromKzt' | 'ticketsLeft' | 'lifecycle'>;
 type EventCardProps = { event: EventCardData; href?: string; detailsLabel?: string };
 
 function statusTone(status: string | undefined): 'default' | 'success' | 'error' | 'muted' {
@@ -14,8 +16,9 @@ function statusTone(status: string | undefined): 'default' | 'success' | 'error'
 }
 
 export function EventCard({ event, href, detailsLabel = 'View details' }: EventCardProps) {
+  const { t, dateBlock, dateTime, money } = useI18n();
   const destination = href ?? `/events/${event.id}`;
-  const date = eventDateParts(event.startsAt);
+  const date = dateBlock(event.startsAt, event.timezone ?? undefined);
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-card border border-border bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
@@ -27,7 +30,8 @@ export function EventCard({ event, href, detailsLabel = 'View details' }: EventC
               <span className="font-display text-2xl font-bold leading-none">{date.day}</span>
             </div>
           ) : <span />}
-          {event.status ? <Badge tone={statusTone(event.status)} onDark>{event.status}</Badge> : null}
+          {event.status && event.status !== 'published' ? <Badge tone={statusTone(event.status)} onDark>{event.status}</Badge>
+            : event.ticketsLeft === 0 ? <Badge tone="error" onDark>{t('Sold out')}</Badge> : event.lifecycle === 'active' ? <Badge tone="success" onDark>{t('Happening now')}</Badge> : null}
         </div>
         <div>
           {event.category ? <p className="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-mist">{event.category}</p> : null}
@@ -35,9 +39,13 @@ export function EventCard({ event, href, detailsLabel = 'View details' }: EventC
         </div>
       </div>
       <div className="grid flex-1 content-between gap-4 p-5">
-        <p className="text-sm font-medium text-text-muted">{formatEventDate(event.startsAt)}</p>
+        <div className="grid gap-1 text-sm">
+          <p className="font-medium text-text">{dateTime(event.startsAt, event.timezone)}</p>
+          {event.venueName || event.city ? <p className="text-text-muted">{[event.venueName, event.city].filter(Boolean).join(', ')}</p> : null}
+          {event.priceFromKzt != null ? <p className="font-semibold text-text">{event.priceFromKzt === 0 ? t('Free') : t('From {price}', { price: money(event.priceFromKzt) })}</p> : null}
+        </div>
         <Link href={destination} className="inline-flex min-h-11 w-fit items-center rounded-full border border-border px-4 text-sm font-semibold text-text transition-colors hover:border-primary hover:text-primary">
-          {detailsLabel}<span className="ml-2" aria-hidden="true">→</span>
+          {t(detailsLabel)}<span className="ml-2" aria-hidden="true">→</span>
         </Link>
       </div>
     </article>

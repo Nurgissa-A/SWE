@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
 import { useId, type ReactNode, type SelectHTMLAttributes } from 'react';
 
 type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
@@ -11,6 +12,7 @@ type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
 };
 
 export function Select({ label, id, error, helpText, className = '', children, ...props }: SelectProps) {
+  const { t } = useI18n();
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descriptionId = `${inputId}-description`;
@@ -18,7 +20,7 @@ export function Select({ label, id, error, helpText, className = '', children, .
   return (
     <div className="grid gap-2">
       <label htmlFor={inputId} className="text-sm font-semibold text-text">
-        {label}{props.required ? <span className="ml-1 text-error" aria-hidden="true">*</span> : null}
+        {t(label)}{props.required ? <span className="ml-1 text-error" aria-hidden="true">*</span> : null}
       </label>
       <select
         {...props}
@@ -29,8 +31,8 @@ export function Select({ label, id, error, helpText, className = '', children, .
       >
         {children}
       </select>
-      {error ? <p id={descriptionId} className="text-sm text-error" role="alert">{error}</p> : null}
-      {!error && helpText ? <p id={descriptionId} className="text-sm text-text-muted">{helpText}</p> : null}
+      {error ? <p id={descriptionId} className="text-sm text-error" role="alert">{t(error)}</p> : null}
+      {!error && helpText ? <p id={descriptionId} className="text-sm text-text-muted">{t(helpText)}</p> : null}
     </div>
   );
 }

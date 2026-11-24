@@ -10,8 +10,10 @@ const nextConfig: NextConfig = {
       { source: '/api/auth/:path*', destination: `${identityApiUrl}/api/auth/:path*` },
       { source: '/api/users/:path*', destination: `${identityApiUrl}/api/users/:path*` },
       { source: '/api/organizer-profile', destination: `${identityApiUrl}/api/organizer-profile` },
-      { source: '/api/events', destination: `${eventsApiUrl}/api/events` },
-      { source: '/api/events/:path*', destination: `${eventsApiUrl}/api/events/:path*` },
+      { source: '/api/admin/users', destination: `${identityApiUrl}/api/admin/users` },
+      { source: '/api/admin/users/:path*', destination: `${identityApiUrl}/api/admin/users/:path*` },
+      // Everything else under /api is the Go business service.
+      { source: '/api/:path*', destination: `${eventsApiUrl}/api/:path*` },
     ];
   },
   async headers() {

@@ -4,10 +4,18 @@ export type EventFormValues = {
   title: string;
   description: string;
   category: string;
+  imageUrl: string;
   startsAt: string;
   endsAt: string;
+  timezone: string;
+  venueName: string;
+  venueAddress: string;
+  city: string;
   capacity: string;
   visibility: 'public' | 'unlisted' | 'private';
+  refundPolicy: string;
+  registrationOpensAt: string;
+  registrationClosesAt: string;
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,29 +36,16 @@ export function validatePassword(password: string): string | undefined {
 
 export function validateEventForm(values: EventFormValues): FieldErrors {
   const errors: FieldErrors = {};
-
-  if (!values.title.trim()) {
-    errors.title = 'Add an event title.';
-  }
-
-  if (!values.startsAt || Number.isNaN(new Date(values.startsAt).getTime())) {
-    errors.startsAt = 'Choose a valid start date and time.';
-  }
-
-  if (values.endsAt) {
-    const startsAt = new Date(values.startsAt).getTime();
-    const endsAt = new Date(values.endsAt).getTime();
-    if (!Number.isNaN(startsAt) && (Number.isNaN(endsAt) || endsAt <= startsAt)) {
-      errors.endsAt = 'The end date must be after the start date.';
-    }
-  }
-
+  if (!values.title.trim()) errors.title = 'Add an event title.';
+  if (!values.startsAt) errors.startsAt = 'Choose a valid start date and time.';
+  if (values.endsAt && values.startsAt && values.endsAt <= values.startsAt) errors.endsAt = 'The end date must be after the start date.';
   if (values.capacity.trim()) {
     const capacity = Number(values.capacity);
-    if (!Number.isInteger(capacity) || capacity < 0) {
-      errors.capacity = 'Capacity must be a non-negative whole number.';
-    }
+    if (!Number.isInteger(capacity) || capacity < 1) errors.capacity = 'Capacity must be a positive whole number.';
   }
-
+  if (values.imageUrl.trim() && !values.imageUrl.trim().startsWith('https://')) errors.imageUrl = 'The image must be an https:// address.';
+  if (values.registrationOpensAt && values.registrationClosesAt && values.registrationClosesAt <= values.registrationOpensAt) {
+    errors.registrationClosesAt = 'Registration must close after it opens.';
+  }
   return errors;
 }
