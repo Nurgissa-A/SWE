@@ -8,11 +8,14 @@ host contract/web checks; application builds run inside Docker.
 
 ## Clean installation
 
-Check out the release tag or recorded commit, create a Python environment and install
-`backend-python/requirements.lock` plus `pip install --no-deps --no-build-isolation -e backend-python`.
-From the repository root, run:
+Check out the release tag or recorded commit. From the repository root, create and
+activate the Python environment, install the lock, then launch:
 
 ```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r backend-python/requirements.lock
+python -m pip install --no-deps --no-build-isolation -e backend-python
 python scripts/local_release.py --build
 curl --cacert .secrets/tls/ca.crt https://localhost:8443/ready
 curl --cacert .secrets/tls/ca.crt https://localhost:8443/health/go
