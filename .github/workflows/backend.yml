@@ -34,7 +34,17 @@ jobs:
       - run: ruff check backend-python scripts
       - run: ruff format --check backend-python scripts
       - run: python scripts/sync_python_contract.py && git diff --exit-code -- docs/openapi.yaml
-      - run: timeout --signal=SIGABRT --kill-after=10s 180s pytest backend-python/tests -v --durations=10 -o faulthandler_timeout=60
+      - name: Build pinned Python test runtime
+        run: docker build -t biletflow-python-tests ./backend-python
+      - name: Run PostgreSQL tests in deployment runtime
+        run: |
+          timeout --kill-after=10s 180s docker run --name biletflow-python-tests --network host --memory 2g \
+            -e TEST_DATABASE_URL -e CI=true \
+            -v "$PWD/backend-python:/srv/identity:ro" -v "$PWD/docs:/srv/docs:ro" \
+            biletflow-python-tests python -m pytest tests -p no:cacheprovider -v --durations=10 -o faulthandler_timeout=60
+      - name: Remove isolated Python test container
+        if: always()
+        run: docker rm -f biletflow-python-tests > /dev/null 2>&1 || true
   go:
     runs-on: ubuntu-latest
     defaults:
