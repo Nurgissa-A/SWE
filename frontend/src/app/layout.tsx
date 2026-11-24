@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import '@fontsource/onest/400.css';
+import '@fontsource/onest/500.css';
+import '@fontsource/onest/600.css';
+import '@fontsource/onest/700.css';
+import '@fontsource/unbounded/600.css';
+import '@fontsource/unbounded/700.css';
 import { AuthProvider } from '@/hooks/useAuth';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import './globals.css';
-
-const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
-const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +20,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body className={`${geist.variable} ${geistMono.variable} font-sans`}>
+      <body className="font-sans">
         <AuthProvider>
           <SiteHeader />
           {children}

@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'quiet' | 'danger';
+  variant?: 'primary' | 'secondary' | 'quiet' | 'danger' | 'onDark';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   children: ReactNode;
@@ -14,6 +14,7 @@ const variantClasses = {
   secondary: 'border border-border bg-surface text-text hover:bg-secondary',
   quiet: 'text-text-muted hover:bg-secondary hover:text-text',
   danger: 'bg-error text-white hover:opacity-90',
+  onDark: 'border border-navy-line text-mist hover:bg-navy-raised hover:text-white',
 };
 
 const sizeClasses = {
