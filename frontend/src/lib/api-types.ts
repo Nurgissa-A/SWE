@@ -494,13 +494,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List events (own drafts for organizers, published events for others)
-         * @description List events (own drafts for organizers, published events for others). Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * List events
+         * @description Public catalogue of published public events (anonymous allowed); organizers also see their own events. Ownership and visibility are enforced by the JWT integration.
          */
         get: {
             parameters: {
                 query?: {
                     status?: "draft" | "published" | "cancelled";
+                    /** @description Search title, category, city or venue */
+                    q?: string;
+                    category?: string;
+                    city?: string;
+                    /** @description ISO date/time */
+                    from?: string;
+                    /** @description ISO date/time */
+                    to?: string;
+                    /** @description Organizer's own events only */
+                    mine?: "true" | "false";
                 };
                 header?: never;
                 path?: never;
@@ -520,6 +530,9 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -527,7 +540,7 @@ export interface paths {
         put?: never;
         /**
          * Create a draft event
-         * @description Create a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Create a draft event owned by the authenticated organizer. Ownership and visibility are enforced by the JWT integration.
          */
         post: {
             parameters: {
@@ -538,23 +551,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": {
-                        title: string;
-                        description?: string | null;
-                        category?: string | null;
-                        /** Format: date-time */
-                        startsAt: string;
-                        /** Format: date-time */
-                        endsAt?: string | null;
-                        /** Format: uuid */
-                        venueId?: string | null;
-                        /**
-                         * @default public
-                         * @enum {string}
-                         */
-                        visibility?: "public" | "unlisted" | "private";
-                        capacity?: number | null;
-                    };
+                    "application/json": components["schemas"]["EventCreate"];
                 };
             };
             responses: {
@@ -570,6 +567,9 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -589,11 +589,14 @@ export interface paths {
         };
         /**
          * Get one event
-         * @description Get one event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Published public/unlisted events are public; private ones need key; drafts are owner-only. Ownership and visibility are enforced by the JWT integration.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description Private-event access key */
+                    key?: string;
+                };
                 header?: never;
                 path: {
                     eventId: string;
@@ -614,13 +617,9 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
-                /** @description Event not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -628,8 +627,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Cancel or delete a draft event
-         * @description Cancel or delete a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * Delete a draft
+         * @description Only drafts without orders can be deleted.
          */
         delete: {
             parameters: {
@@ -642,7 +641,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Deleted or cancelled */
+                /** @description Deleted */
                 204: {
                     headers: {
                         [name: string]: unknown;
@@ -652,6 +651,9 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -659,8 +661,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Edit a draft event
-         * @description Edit a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * Edit an event
+         * @description Partial update by the owner. Changing date, time or venue of a published event notifies ticket holders.
          */
         patch: {
             parameters: {
@@ -673,21 +675,11 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": {
-                        title?: string;
-                        description?: string;
-                        /** Format: date-time */
-                        startsAt?: string;
-                        /** Format: date-time */
-                        endsAt?: string;
-                        capacity?: number;
-                        /** @enum {string} */
-                        visibility?: "public" | "unlisted" | "private";
-                    };
+                    "application/json": components["schemas"]["EventUpdate"];
                 };
             };
             responses: {
-                /** @description Updated */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -699,13 +691,9 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
-                /** @description Cannot edit a published event's core details */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -723,7 +711,7 @@ export interface paths {
         put?: never;
         /**
          * Publish a draft event
-         * @description Publish a draft event. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Requires a verified e-mail, venue name and city, and at least one ticket type.
          */
         post: {
             parameters: {
@@ -745,15 +733,12 @@ export interface paths {
                         "application/json": components["schemas"]["Event"];
                     };
                 };
-                /** @description Event missing required fields for publishing */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
@@ -775,7 +760,7 @@ export interface paths {
         put?: never;
         /**
          * Move a published event back to draft
-         * @description Move a published event back to draft. Event ownership and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+         * @description Only while the event has no orders; otherwise cancel it.
          */
         post: {
             parameters: {
@@ -800,10 +785,3234 @@ export interface paths {
                 400: components["responses"]["APIError"];
                 401: components["responses"]["APIError"];
                 403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate an event
+         * @description Copies details and ticket types into a new draft; no orders, campaigns or history.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Draft copy created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Event"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an event
+         * @description Refunds every paid order, cancels free registrations and notifies attendees.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Event"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report an event to moderation
+         * @description Report an event to moderation.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Report received */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/ticket-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List ticket types
+         * @description Visitors see purchasable types; the owner also sees hidden types and counts.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    key?: string;
+                };
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TicketType"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Add a ticket type
+         * @description Add a ticket type.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TicketTypeInput"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TicketType"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/ticket-types/{ticketTypeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a ticket type
+         * @description Only before any order; otherwise hide it.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                    ticketTypeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit a ticket type
+         * @description Price is locked after orders exist; quantity cannot drop below sold + reserved.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                    ticketTypeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TicketTypeInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TicketType"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/events/{eventId}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Event Admins
+         * @description List Event Admins.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StaffMember"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Assign an Event Admin
+         * @description Assigns an existing verified account (resolved via the identity service) to check in guests for this event only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        canUndo?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Assigned */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StaffMember"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/staff/{staffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an Event Admin
+         * @description Remove an Event Admin.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                    staffId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Removed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an event's orders
+         * @description List an event's orders.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    status?: string;
+                };
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrderSummary"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Event analytics
+         * @description Computed from BiletFlow records; date filters use the payment day in the event time zone.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    ticketTypeId?: string;
+                };
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AnalyticsReport"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Event activity history
+         * @description Append-only audit trail of the event.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Action prefix, e.g. order, event, campaign */
+                    type?: string;
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimelineEntry"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/activation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Paid-sales activation checklist
+         * @description Paid-sales activation checklist.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActivationChecklist"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/activation/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept paid-sales terms
+         * @description Accept paid-sales terms.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActivationChecklist"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/activation/fee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay the activation fee (simulated)
+         * @description Charges the per-event fee through the simulator; 402 on a declined test card.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        cardNumber: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActivationChecklist"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                402: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/activation/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate paid sales
+         * @description Activate paid sales.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActivationChecklist"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List promo campaigns with results
+         * @description List promo campaigns with results.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Campaign"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Create a promo campaign
+         * @description Create a promo campaign.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CampaignInput"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Campaign"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/campaigns/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit or disable a campaign
+         * @description Edit or disable a campaign.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                    campaignId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        /** @enum {string} */
+                        status?: "active" | "disabled";
+                        /** Format: date-time */
+                        validUntil?: string | null;
+                        maxRedemptions?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Campaign"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/events/{eventId}/campaigns/{campaignId}/qr.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Campaign QR image
+         * @description PNG QR encoding an opaque https campaign link (never an admission ticket).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                    campaignId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/promo-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a promo code
+         * @description Server-side discount calculation without reserving a redemption. Rate limited.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                        items?: {
+                            /** Format: uuid */
+                            ticketTypeId?: string;
+                            quantity?: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            name?: string;
+                            discountType?: string;
+                            discountValue?: number;
+                            discountKzt?: number;
+                            perTicketType?: {
+                                [key: string]: number;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/campaigns/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open a campaign link
+         * @description Counts the visit server-side and returns the event to open with its code.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            eventId?: string;
+                            active?: boolean;
+                            code?: string;
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkout/reserve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reserve tickets
+         * @description Holds inventory for the hold period under a row lock; free orders complete immediately.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReserveRequest"];
+                };
+            };
+            responses: {
+                /** @description Order created (pending, or completed when free) */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkout/{orderId}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay a pending order (simulated)
+         * @description Issues tickets only on success; a failure releases inventory and promo redemption (402).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 4242 4242 4242 4242 succeeds; 4000 0000 0000 0002 declines; 4000 0000 0000 9995 insufficient funds */
+                        cardNumber: string;
+                        attendees?: {
+                            name: string;
+                            /** Format: email */
+                            email: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                402: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkout/{orderId}/abandon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release a hold
+         * @description Release a hold.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Released */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My orders
+         * @description My orders.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrderSummary"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Order details
+         * @description Visible to the buyer, the event organizer and platform admins.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/tickets.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download all tickets (A4 PDF)
+         * @description Download all tickets (A4 PDF).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": string;
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/tickets/{ticketId}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download one ticket (A4 PDF)
+         * @description Download one ticket (A4 PDF).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                    ticketId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": string;
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refund a paid order
+         * @description Organizer-initiated full refund (simulated) if no ticket was used.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a free registration
+         * @description Cancel a free registration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Order"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organizer/payment-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Simulated identity and payout status
+         * @description Simulated identity and payout status.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentSetup"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organizer/payment-setup/identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Simulated identity check
+         * @description Simulated identity check.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        legalName: string;
+                        /** @description 12 digits; format-checked only, never stored */
+                        iin: string;
+                        consent: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentSetup"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organizer/payment-setup/payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the payout account (simulated)
+         * @description Set the payout account (simulated).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        bankName: string;
+                        accountHolder: string;
+                        /** @description KZ IBAN; stored masked */
+                        iban: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentSetup"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organizer/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Organizer dashboard
+         * @description Organizer dashboard.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OverviewEvent"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Events I can check in
+         * @description Events I can check in.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScannerEvent"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Door summary
+         * @description Door summary.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            title?: string;
+                            /** Format: date-time */
+                            startsAt?: string;
+                            timezone?: string;
+                            canUndo?: boolean;
+                            counts?: {
+                                sold: number;
+                                checkedIn: number;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/events/{eventId}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scan a QR code
+         * @description Admits a valid ticket exactly once (also across simultaneous devices); rejects campaign QR codes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        payload: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScanResult"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/events/{eventId}/check-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Manual check-in
+         * @description Manual check-in.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        ticketId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScanResult"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/events/{eventId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo a check-in
+         * @description Undo a check-in.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        ticketId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ticket?: components["schemas"]["ScannerTicket"];
+                            counts?: {
+                                sold: number;
+                                checkedIn: number;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/events/{eventId}/attendees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search attendees at the door
+         * @description Name, ticket code or order number; no e-mail addresses.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScannerTicket"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My support cases
+         * @description Requesters see their own; organizers also see attendee cases of their events; platform admins see organizer and escalated cases.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupportCase"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        /**
+         * Open a support case
+         * @description Context must belong to the requester.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        kind?: "attendee" | "organizer";
+                        /** @enum {string} */
+                        category: "ticket_delivery" | "payment" | "refund" | "event_information" | "check_in" | "account" | "activation" | "technical";
+                        subject: string;
+                        message: string;
+                        /** Format: uuid */
+                        eventId?: string | null;
+                        /** Format: uuid */
+                        orderId?: string | null;
+                        /** Format: uuid */
+                        ticketId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupportCase"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/cases/{caseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Support case with messages
+         * @description Support case with messages.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    caseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupportCase"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change status, assign or escalate
+         * @description Change status, assign or escalate.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    caseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status?: "open" | "in_progress" | "waiting_for_customer" | "resolved";
+                        assignToMe?: boolean;
+                        escalate?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupportCase"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/support/cases/{caseId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reply on a case
+         * @description Reply on a case.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    caseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Added */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupportCase"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My notifications
+         * @description My notifications.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "X-Locale"?: "kk" | "ru" | "en";
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items?: components["schemas"]["Notification"][];
+                            unread?: number;
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark all read
+         * @description Mark all read.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Done */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark one read
+         * @description Mark one read.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Done */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Platform summary
+         * @description Platform summary.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search events
+         * @description Search events.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/events/{eventId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend an event
+         * @description Suspend an event.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Suspended */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/events/{eventId}/unsuspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lift a suspension
+         * @description Lift a suspension.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lifted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/events/{eventId}/paid-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend or resume paid sales
+         * @description Suspend or resume paid sales.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "suspend" | "resume";
+                    };
+                };
+            };
+            responses: {
+                /** @description Changed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search orders
+         * @description Search orders.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monitor payments and refunds
+         * @description Monitor payments and refunds.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "succeeded" | "failed";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/activations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect activations
+         * @description Inspect activations.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Promo activity
+         * @description Promo activity.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Event reports
+         * @description Event reports.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminRow"][];
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Resolve a report
+         * @description Resolve a report.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reportId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "open" | "actioned" | "dismissed";
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Platform settings
+         * @description Platform settings.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            activation_fee_kzt?: number;
+                            processing_fee_percent?: number;
+                            hold_minutes?: number;
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        /**
+         * Change platform settings
+         * @description Change platform settings.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        activation_fee_kzt?: number;
+                        processing_fee_percent?: number;
+                        hold_minutes?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            activation_fee_kzt?: number;
+                            processing_fee_percent?: number;
+                            hold_minutes?: number;
+                        };
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/export/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * CSV export
+         * @description CSV export.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    kind: "orders.csv" | "payments.csv";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                    };
+                };
+                400: components["responses"]["APIError"];
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                409: components["responses"]["APIError"];
+                429: components["responses"]["APIError"];
+                500: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -838,31 +4047,520 @@ export interface components {
         };
         Event: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: uuid */
-            organizerId?: string;
-            title?: string;
+            organizerId: string;
+            title: string;
             description?: string | null;
             category?: string | null;
+            imageUrl?: string | null;
             /** Format: date-time */
-            startsAt?: string;
+            startsAt: string;
             /** Format: date-time */
             endsAt?: string | null;
+            /** @description IANA time zone, default Asia/Almaty */
+            timezone: string;
             /** Format: uuid */
             venueId?: string | null;
+            venueName?: string | null;
+            venueAddress?: string | null;
+            city?: string | null;
             /** @enum {string} */
-            visibility?: "public" | "unlisted" | "private";
+            visibility: "public" | "unlisted" | "private";
             capacity?: number | null;
             /** @enum {string} */
-            status?: "draft" | "published" | "cancelled";
+            status: "draft" | "published" | "cancelled";
             /** Format: date-time */
-            createdAt?: string;
+            registrationOpensAt?: string | null;
+            /** Format: date-time */
+            registrationClosesAt?: string | null;
+            refundPolicy: string;
+            /** @enum {string} */
+            paidSalesStatus: "inactive" | "active" | "suspended";
+            suspended: boolean;
+            suspensionReason?: string | null;
+            /** Format: uuid */
+            duplicatedFrom?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            cancelledAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @enum {string} */
+            lifecycle: "draft" | "upcoming" | "active" | "completed" | "cancelled";
+            priceFromKzt?: number | null;
+            ticketsLeft?: number | null;
+            /** @description Private-link key; returned to the owner only */
+            accessToken?: string;
         };
         Error: {
             error: {
                 code: string;
                 message: string;
+                /** @description Values for placeholders in message; clients translate by code. */
+                params?: {
+                    [key: string]: unknown;
+                };
             };
+        };
+        EventCreate: {
+            title: string;
+            description?: string | null;
+            category?: string | null;
+            imageUrl?: string | null;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            /** @description IANA time zone, default Asia/Almaty */
+            timezone?: string;
+            venueName?: string | null;
+            venueAddress?: string | null;
+            city?: string | null;
+            /** @enum {string} */
+            visibility?: "public" | "unlisted" | "private";
+            capacity?: number | null;
+            /** Format: date-time */
+            registrationOpensAt?: string | null;
+            /** Format: date-time */
+            registrationClosesAt?: string | null;
+            refundPolicy?: string;
+            /** Format: uuid */
+            venueId?: string | null;
+        };
+        EventUpdate: {
+            title?: string;
+            description?: string | null;
+            category?: string | null;
+            imageUrl?: string | null;
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            /** @description IANA time zone, default Asia/Almaty */
+            timezone?: string;
+            venueName?: string | null;
+            venueAddress?: string | null;
+            city?: string | null;
+            /** @enum {string} */
+            visibility?: "public" | "unlisted" | "private";
+            capacity?: number | null;
+            /** Format: date-time */
+            registrationOpensAt?: string | null;
+            /** Format: date-time */
+            registrationClosesAt?: string | null;
+            refundPolicy?: string;
+        };
+        TicketType: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            name: string;
+            description: string;
+            /** @description Whole tenge; 0 = free */
+            priceKzt: number;
+            quantity: number;
+            /** Format: date-time */
+            salesStartAt?: string | null;
+            /** Format: date-time */
+            salesEndAt?: string | null;
+            maxPerOrder: number;
+            hidden: boolean;
+            sortOrder: number;
+            available: number;
+            /** @description Owner only */
+            counts?: {
+                reserved: number;
+                sold: number;
+                refunded: number;
+                checkedIn: number;
+            };
+        };
+        TicketTypeInput: {
+            name?: string;
+            description?: string;
+            /** @description Whole tenge; 0 = free */
+            priceKzt?: number;
+            quantity?: number;
+            /** Format: date-time */
+            salesStartAt?: string | null;
+            /** Format: date-time */
+            salesEndAt?: string | null;
+            maxPerOrder?: number;
+            hidden?: boolean;
+            sortOrder?: number;
+        };
+        StaffMember: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            email: string;
+            displayName?: string | null;
+            canUndo: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        Ticket: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            ticketType: string;
+            attendeeName: string;
+            /** @enum {string} */
+            status: "valid" | "checked_in" | "cancelled" | "refunded";
+            /** Format: date-time */
+            checkedInAt?: string | null;
+            /** @description Signed admission payload BFT1.<id>.<sig>; owner only, valid tickets only */
+            qrPayload?: string;
+        };
+        Order: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "pending" | "completed" | "failed" | "expired" | "cancelled" | "refunded";
+            event: {
+                /** Format: uuid */
+                id: string;
+                title: string;
+                /** Format: date-time */
+                startsAt: string;
+                /** Format: date-time */
+                endsAt?: string | null;
+                timezone: string;
+                venueName?: string | null;
+                city?: string | null;
+                status: string;
+                refundPolicy: string;
+                /** Format: uuid */
+                organizerId: string;
+            };
+            buyerName: string;
+            buyerEmail: string;
+            buyerPhone?: string | null;
+            items: {
+                /** Format: uuid */
+                ticketTypeId: string;
+                name: string;
+                quantity: number;
+                unitPriceKzt: number;
+                discountKzt: number;
+            }[];
+            subtotalKzt: number;
+            discountKzt: number;
+            totalKzt: number;
+            promoCode?: string | null;
+            /** @description Always true: payments are simulated in this MVP */
+            isSimulated: boolean;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            /** Format: date-time */
+            paidAt?: string | null;
+            /** Format: date-time */
+            refundedAt?: string | null;
+            /** Format: date-time */
+            cancelledAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            tickets: components["schemas"]["Ticket"][];
+            canRefund: boolean;
+            canCancel: boolean;
+        };
+        OrderSummary: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            status: string;
+            /** Format: uuid */
+            eventId: string;
+            eventTitle: string;
+            /** Format: date-time */
+            startsAt: string;
+            buyerName: string;
+            buyerEmail: string;
+            totalKzt: number;
+            discountKzt: number;
+            tickets: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ReserveRequest: {
+            /** Format: uuid */
+            eventId: string;
+            items: {
+                /** Format: uuid */
+                ticketTypeId: string;
+                quantity: number;
+            }[];
+            promoCode?: string | null;
+            buyer: {
+                name: string;
+                /** Format: email */
+                email: string;
+                phone?: string | null;
+            };
+            attendees?: {
+                name: string;
+                /** Format: email */
+                email: string;
+            }[];
+            /** @description Private-event key */
+            accessKey?: string;
+        };
+        PaymentSetup: {
+            legalName?: string | null;
+            /** Format: date-time */
+            identityVerifiedAt?: string | null;
+            bankName?: string | null;
+            accountHolder?: string | null;
+            ibanMasked?: string | null;
+            /** Format: date-time */
+            payoutVerifiedAt?: string | null;
+            isSimulated: boolean;
+        };
+        ActivationChecklist: {
+            /** Format: uuid */
+            eventId: string;
+            paidSalesStatus: string;
+            hasPaidTicketType: boolean;
+            identityVerified: boolean;
+            payoutAccount: boolean;
+            feeKzt: number;
+            feePaid: boolean;
+            termsAccepted: boolean;
+            /** Format: date-time */
+            activatedAt?: string | null;
+            ready: boolean;
+            isSimulated: boolean;
+        };
+        CampaignInput: {
+            name: string;
+            /** @description 3–30 of A-Z 0-9 - _ (stored upper-case) */
+            code: string;
+            /** @enum {string} */
+            discountType: "percent" | "fixed";
+            discountValue: number;
+            /** Format: date-time */
+            validFrom?: string | null;
+            /** Format: date-time */
+            validUntil?: string | null;
+            maxRedemptions?: number | null;
+            ticketTypeIds?: string[];
+        };
+        Campaign: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            name: string;
+            /** @description 3–30 of A-Z 0-9 - _ (stored upper-case) */
+            code: string;
+            /** @enum {string} */
+            discountType: "percent" | "fixed";
+            discountValue: number;
+            /** Format: date-time */
+            validFrom?: string | null;
+            /** Format: date-time */
+            validUntil?: string | null;
+            maxRedemptions?: number | null;
+            ticketTypeIds: string[];
+            linkToken?: string;
+            redemptionsCount: number;
+            /** @enum {string} */
+            status: "active" | "disabled";
+            linkVisits: number;
+            /** Format: date-time */
+            createdAt: string;
+            results?: {
+                orders: number;
+                tickets: number;
+                revenueKzt: number;
+                discountKzt: number;
+            };
+        };
+        ScannerTicket: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            attendeeName: string;
+            ticketType: string;
+            status: string;
+            /** Format: date-time */
+            checkedInAt?: string | null;
+        };
+        ScanResult: {
+            /** @enum {string} */
+            result: "admitted" | "already_used" | "cancelled" | "refunded" | "wrong_event" | "campaign_qr" | "invalid";
+            message: string;
+            ticket?: components["schemas"]["ScannerTicket"];
+            counts: {
+                sold: number;
+                checkedIn: number;
+            };
+        };
+        ScannerEvent: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: date-time */
+            startsAt: string;
+            timezone: string;
+            venueName?: string | null;
+            city?: string | null;
+            status: string;
+            /** @enum {string} */
+            role: "organizer" | "event_admin";
+            canUndo: boolean;
+            counts: {
+                sold: number;
+                checkedIn: number;
+            };
+        };
+        SupportMessage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            authorId: string;
+            author: string;
+            /** @enum {string} */
+            role: "requester" | "organizer" | "biletflow";
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        SupportCase: {
+            /** Format: uuid */
+            id: string;
+            number: number;
+            /** @enum {string} */
+            kind: "attendee" | "organizer";
+            /** @enum {string} */
+            category: "ticket_delivery" | "payment" | "refund" | "event_information" | "check_in" | "account" | "activation" | "technical";
+            subject: string;
+            /** @enum {string} */
+            status: "open" | "in_progress" | "waiting_for_customer" | "resolved";
+            /** Format: uuid */
+            requesterId: string;
+            requester: string;
+            /** Format: uuid */
+            eventId?: string | null;
+            eventTitle?: string | null;
+            /** Format: uuid */
+            orderId?: string | null;
+            orderNumber?: string | null;
+            /** Format: uuid */
+            ticketId?: string | null;
+            ticketCode?: string | null;
+            /** Format: uuid */
+            assignedTo?: string | null;
+            assignee?: string | null;
+            escalated: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            messages?: components["schemas"]["SupportMessage"][];
+            canManage: boolean;
+            canEscalate: boolean;
+        };
+        Notification: {
+            /** Format: uuid */
+            id: string;
+            type: string;
+            /** @description Rendered in X-Locale or the saved language */
+            title: string;
+            body: string;
+            params: {
+                [key: string]: unknown;
+            };
+            link?: string | null;
+            read: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AnalyticsReport: {
+            /** Format: uuid */
+            eventId: string;
+            timezone: string;
+            isSimulated: boolean;
+            filters: {
+                [key: string]: unknown;
+            };
+            summary: {
+                ticketsTotal: number;
+                sold: number;
+                remaining: number;
+                checkedIn: number;
+                orders: number;
+                grossKzt: number;
+                discountsKzt: number;
+                refundsKzt: number;
+                netKzt: number;
+                feesKzt: number;
+                estimatedPayoutKzt: number;
+                capacity?: number | null;
+                percentSold: number;
+                attendanceRate: number;
+            };
+            daily: {
+                /** Format: date */
+                day: string;
+                tickets: number;
+                revenueKzt: number;
+            }[];
+            byTicketType: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                priceKzt: number;
+                quantity: number;
+                sold: number;
+                reserved: number;
+                refunded: number;
+                checkedIn: number;
+                revenueKzt: number;
+            }[];
+            campaigns: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                code: string;
+                visits: number;
+                orders: number;
+                tickets: number;
+                revenueKzt: number;
+                discountKzt: number;
+            }[];
+        };
+        TimelineEntry: {
+            id: number;
+            action: string;
+            entityType: string;
+            entityId?: string | null;
+            description: string;
+            actor?: string | null;
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string;
+        };
+        OverviewEvent: components["schemas"]["Event"] & {
+            sold?: number;
+            checkedIn?: number;
+            revenueKzt?: number;
+            openCases?: number;
+        };
+        /** @description Admin list row (fields per endpoint) */
+        AdminRow: {
+            [key: string]: unknown;
         };
     };
     responses: {

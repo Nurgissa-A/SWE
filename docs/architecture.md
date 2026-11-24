@@ -4,7 +4,7 @@
 
 - Python FastAPI owns identity (`identity_users`, organizer profiles, action tokens and delivery receipts).
 - PostgreSQL 16 supplies persistent identity storage; Alembic applies migrations before Python readiness passes.
-- Go retains its handler/service/repository Event architecture and currently uses an in-memory repository.
+- Go owns the business API (events through check-in, promo, support, analytics and moderation) with PostgreSQL persistence and its own embedded migrations; each feature keeps the handler/service/repository layering.
 - Next.js and mobile source are preserved. They are consumers, not trusted authorities for roles or organizer IDs.
 - Docker Compose exposes Python 8000, Go 8080, Mailpit 8025/1025 and optional Prism 4010 on loopback. It does not pretend that port 8000 serves Go Event routes.
 

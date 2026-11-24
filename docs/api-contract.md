@@ -1,6 +1,6 @@
 # Shared API contract and implementation status
 
-`docs/openapi.yaml` is the shared contract. Existing `/api` paths, camelCase DTOs and login `{token,user}` response remain intact. Do not drop `/api` from client requests. There is no combined gateway yet: route Auth/User/Profile to Python 8000 and Events to Go 8080. Prism on 4010 mocks both; a mock response is not an implemented backend.
+`docs/openapi.yaml` is the shared contract. Existing `/api` paths, camelCase DTOs and login `{token,user}` response remain intact. Do not drop `/api` from client requests. There is no combined gateway yet: route Auth/User/Profile to Python 8000 and every other `/api` route to Go 8080 (the Next.js rewrites do this). Prism on 4010 mocks both; a mock response is not an implemented backend.
 
 ## Identity implementation
 
@@ -12,7 +12,10 @@
 | POST /api/auth/request-password-reset | Generic 200 for known/unknown addresses; configured mail adapter, no raw token in response |
 | POST /api/auth/reset-password | Single-use 200; invalidates prior access/reset tokens; invalid/expired/reused 400 |
 | GET /api/users/me | Live identity; missing, invalid, revoked, inactive/deleted/unverified user 401 |
-| PATCH /api/users/me | Own displayName only; role/id injection rejected |
+| PATCH /api/users/me | Own displayName and/or locale (kk, ru, en); role/id injection rejected |
+| GET /api/users/lookup | Organizer/platform admin only: exact e-mail of a verified, active account → id, email, displayName, locale (assigning door staff); 404 otherwise |
+| GET /api/admin/users | Platform admin: search accounts by e-mail/name, optional role filter |
+| PATCH /api/admin/users/{userId} | Platform admin: suspend/reactivate (`isActive`), revoking tokens; administrators and roles stay operator/CLI-only |
 | POST /api/organizer-profile | Verified attendee/organizer creates own profile and becomes organizer; repeated create 409; admin roles forbidden |
 | GET /api/organizer-profile | Organizer sees own record only; missing 404, wrong role 403 |
 | PATCH /api/organizer-profile | Replaces own contact fields; optional fields default to null; contactEmail required |
@@ -28,7 +31,14 @@ All identity errors use `{error:{code,message}}` and never echo credentials or v
 - Servers now identify their actual route subsets rather than incorrectly claiming the frontend port serves every API.
 - Frontend generated types are regenerated from this contract; frontend page/component logic is untouched.
 
-Go create/list/detail/publish already have source implementations; PATCH/DELETE/unpublish are still contract-only and are not implemented by the Python work. Event persistence, UUID correction and broader lifecycle validation remain Go-owned work. The separately reviewable JWT integration secures only the existing route slice and removes the hardcoded organizer from its completed path.
+## Business API (v0.3, Go)
+
+v0.3 adds the full MVP business API served by Go with PostgreSQL persistence: event edit/delete/unpublish/duplicate/cancel, ticket types, Event Admin assignments, paid-sales activation, checkout and simulated payment, orders, PDF tickets, refunds, door check-in, promo campaigns, support cases, analytics and timeline, notifications and platform moderation. Event IDs are now UUIDs.
+
+- Anonymous `GET` is allowed for the public catalogue, event pages, ticket types and campaign links; drafts, private events and other users' data stay hidden.
+- Errors keep `{error:{code,message}}`; Go codes are stable identifiers such as `SOLD_OUT` or `PROMO_EXHAUSTED`, with optional `params` for the clients' translated messages.
+- Notifications are stored as a type plus parameters and rendered in Kazakh, Russian or English (`X-Locale` header, else the saved language).
+- Behavioural tightening: publishing now requires a venue name, a city and at least one ticket type (SRS §4.2).
 
 ## Tools
 

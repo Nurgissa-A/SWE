@@ -21,6 +21,10 @@ type Principal struct {
 	ID            string `json:"id"`
 	Role          string `json:"role"`
 	EmailVerified bool   `json:"emailVerified"`
+	// Display data from the live identity response; never used for authorization.
+	Email       string `json:"email,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Locale      string `json:"locale,omitempty"`
 }
 
 type contextKey struct{}
@@ -113,11 +117,17 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": map[string]string{"code": strconv.Itoa(status), "message": message}})
 }
 
+// AnonymousReadable lists the GET paths that work without a token.
+func AnonymousReadable(path string) bool {
+	return path == "/api/events" || strings.HasPrefix(path, "/api/events/") || strings.HasPrefix(path, "/api/public/")
+}
+
 func (v *Verifier) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")
-		// Existing detail endpoint permits anonymous public/unlisted published events only.
-		if header == "" && r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/events/") {
+		// Anonymous visitors may read public event pages and listings (SRS §4.2) and open
+		// campaign links; handlers still hide drafts, private events and other users' data.
+		if header == "" && r.Method == http.MethodGet && AnonymousReadable(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -137,4 +147,42 @@ func (v *Verifier) Middleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(WithPrincipal(r.Context(), principal)))
 	})
+}
+
+// LookedUpUser is a verified account found by e-mail through the identity service.
+type LookedUpUser struct {
+	ID          string  `json:"id"`
+	Email       string  `json:"email"`
+	DisplayName *string `json:"displayName"`
+	Locale      string  `json:"locale"`
+}
+
+// ErrNoSuchUser means the identity service has no verified, active account with that e-mail.
+var ErrNoSuchUser = errors.New("no such user")
+
+// LookupUser asks the identity service for a verified user by e-mail, authorised with the
+// caller's own bearer token (organizers adding door staff). The identity service decides
+// whether the caller may look users up.
+func (v *Verifier) LookupUser(ctx context.Context, bearer, email string) (LookedUpUser, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.identityURL+"/api/users/lookup?email="+url.QueryEscape(email), nil)
+	if err != nil {
+		return LookedUpUser{}, err
+	}
+	req.Header.Set("Authorization", bearer)
+	res, err := v.client.Do(req)
+	if err != nil {
+		return LookedUpUser{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode == http.StatusNotFound {
+		return LookedUpUser{}, ErrNoSuchUser
+	}
+	if res.StatusCode != http.StatusOK {
+		return LookedUpUser{}, errors.New("identity lookup failed: " + res.Status)
+	}
+	var u LookedUpUser
+	if err := json.NewDecoder(io.LimitReader(res.Body, 65536)).Decode(&u); err != nil || !uuidPattern.MatchString(u.ID) {
+		return LookedUpUser{}, errors.New("malformed identity lookup response")
+	}
+	return u, nil
 }

@@ -1,14 +1,16 @@
 openapi: 3.0.3
 info:
   title: BiletFlow API
-  version: 0.2.0
-  description: Shared BiletFlow Auth/User/Profile and Event contract. Python identity routes are implemented;
-    Event edit/delete/unpublish remain Go-owned planned operations. All routes preserve the /api prefix.
+  version: 0.3.0
+  description: Shared BiletFlow contract. Python serves identity (/api/auth, /api/users, /api/organizer-profile);
+    Go serves the business API (events, ticket types, checkout, orders, check-in, promo, support, analytics,
+    notifications, admin). All routes keep the /api prefix. Error responses carry a stable code that clients
+    translate.
 servers:
 - url: http://localhost:8000
   description: Python identity service; /api/auth, /api/users, /api/organizer-profile only
 - url: http://localhost:8080
-  description: Go Event service; /api/events only
+  description: Go business service; every /api route except identity
 - url: http://localhost:4010
   description: Prism development mock; no persistent state or real authentication
 paths:
@@ -480,40 +482,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-              - title
-              - startsAt
-              properties:
-                title:
-                  type: string
-                description:
-                  type: string
-                  nullable: true
-                category:
-                  type: string
-                  nullable: true
-                startsAt:
-                  type: string
-                  format: date-time
-                endsAt:
-                  type: string
-                  format: date-time
-                  nullable: true
-                venueId:
-                  type: string
-                  format: uuid
-                  nullable: true
-                visibility:
-                  type: string
-                  enum:
-                  - public
-                  - unlisted
-                  - private
-                  default: public
-                capacity:
-                  type: integer
-                  nullable: true
+              $ref: '#/components/schemas/EventCreate'
       responses:
         '201':
           description: Draft event created
@@ -527,19 +496,23 @@ paths:
           $ref: '#/components/responses/APIError'
         '403':
           $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Create a draft event. Event ownership and visibility authorization are enforced by
-        the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      description: Create a draft event owned by the authenticated organizer. Ownership and visibility
+        are enforced by the JWT integration.
       x-implementation-status: implemented
     get:
-      summary: List events (own drafts for organizers, published events for others)
-      security:
-      - bearerAuth: []
+      summary: List events
       parameters:
       - name: status
         in: query
@@ -550,6 +523,43 @@ paths:
           - draft
           - published
           - cancelled
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Search title, category, city or venue
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: city
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: ISO date/time
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+        description: ISO date/time
+      - name: mine
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - 'true'
+          - 'false'
+        description: Organizer's own events only
       responses:
         '200':
           description: OK
@@ -565,16 +575,24 @@ paths:
           $ref: '#/components/responses/APIError'
         '403':
           $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: List events (own drafts for organizers, published events for others). Event ownership
-        and visibility authorization are enforced by the JWT integration. PATCH, DELETE and unpublish
-        are still pending Madi implementation.
+      description: Public catalogue of published public events (anonymous allowed); organizers also see
+        their own events. Ownership and visibility are enforced by the JWT integration.
       x-implementation-status: implemented
+      security:
+      - {}
+      - bearerAuth: []
   /api/events/{eventId}:
     get:
       summary: Get one event
@@ -585,6 +603,12 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Private-event access key
       responses:
         '200':
           description: OK
@@ -592,13 +616,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
-        '404':
-          description: Event not found
         '400':
           $ref: '#/components/responses/APIError'
         '401':
           $ref: '#/components/responses/APIError'
         '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
           $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
@@ -606,11 +634,14 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Get one event. Event ownership and visibility authorization are enforced by the JWT
-        integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      description: Published public/unlisted events are public; private ones need key; drafts are owner-only.
+        Ownership and visibility are enforced by the JWT integration.
       x-implementation-status: implemented
+      security:
+      - {}
+      - bearerAuth: []
     patch:
-      summary: Edit a draft event
+      summary: Edit an event
       security:
       - bearerAuth: []
       parameters:
@@ -625,40 +656,25 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                description:
-                  type: string
-                startsAt:
-                  type: string
-                  format: date-time
-                endsAt:
-                  type: string
-                  format: date-time
-                capacity:
-                  type: integer
-                visibility:
-                  type: string
-                  enum:
-                  - public
-                  - unlisted
-                  - private
+              $ref: '#/components/schemas/EventUpdate'
       responses:
         '200':
-          description: Updated
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
-        '409':
-          description: Cannot edit a published event's core details
         '400':
           $ref: '#/components/responses/APIError'
         '401':
           $ref: '#/components/responses/APIError'
         '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
           $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
@@ -666,11 +682,11 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Edit a draft event. Event ownership and visibility authorization are enforced by the
-        JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
-      x-implementation-status: planned
+      description: Partial update by the owner. Changing date, time or venue of a published event notifies
+        ticket holders.
+      x-implementation-status: implemented
     delete:
-      summary: Cancel or delete a draft event
+      summary: Delete a draft
       security:
       - bearerAuth: []
       parameters:
@@ -682,12 +698,18 @@ paths:
           format: uuid
       responses:
         '204':
-          description: Deleted or cancelled
+          description: Deleted
         '400':
           $ref: '#/components/responses/APIError'
         '401':
           $ref: '#/components/responses/APIError'
         '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
           $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
@@ -695,9 +717,8 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Cancel or delete a draft event. Event ownership and visibility authorization are enforced
-        by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
-      x-implementation-status: planned
+      description: Only drafts without orders can be deleted.
+      x-implementation-status: implemented
   /api/events/{eventId}/publish:
     post:
       summary: Publish a draft event
@@ -718,10 +739,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Event'
         '400':
-          description: Event missing required fields for publishing
+          $ref: '#/components/responses/APIError'
         '401':
           $ref: '#/components/responses/APIError'
         '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
           $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
@@ -729,8 +756,7 @@ paths:
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Publish a draft event. Event ownership and visibility authorization are enforced by
-        the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
+      description: Requires a verified e-mail, venue name and city, and at least one ticket type.
       x-implementation-status: implemented
   /api/events/{eventId}/unpublish:
     post:
@@ -757,15 +783,2924 @@ paths:
           $ref: '#/components/responses/APIError'
         '403':
           $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
         '500':
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
       tags:
       - events
-      description: Move a published event back to draft. Event ownership and visibility authorization
-        are enforced by the JWT integration. PATCH, DELETE and unpublish are still pending Madi implementation.
-      x-implementation-status: planned
+      description: Only while the event has no orders; otherwise cancel it.
+      x-implementation-status: implemented
+  /api/events/{eventId}/duplicate:
+    post:
+      summary: Duplicate an event
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '201':
+          description: Draft copy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - events
+      description: Copies details and ticket types into a new draft; no orders, campaigns or history.
+      x-implementation-status: implemented
+  /api/events/{eventId}/cancel:
+    post:
+      summary: Cancel an event
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+              required:
+              - reason
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - events
+      description: Refunds every paid order, cancels free registrations and notifies attendees.
+      x-implementation-status: implemented
+  /api/events/{eventId}/report:
+    post:
+      summary: Report an event to moderation
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+              required:
+              - reason
+      responses:
+        '201':
+          description: Report received
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - events
+      description: Report an event to moderation.
+      x-implementation-status: implemented
+  /api/events/{eventId}/ticket-types:
+    get:
+      summary: List ticket types
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: key
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketType'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - tickets
+      description: Visitors see purchasable types; the owner also sees hidden types and counts.
+      x-implementation-status: implemented
+      security:
+      - {}
+      - bearerAuth: []
+    post:
+      summary: Add a ticket type
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTypeInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketType'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - tickets
+      description: Add a ticket type.
+      x-implementation-status: implemented
+  /api/events/{eventId}/ticket-types/{ticketTypeId}:
+    patch:
+      summary: Edit a ticket type
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: ticketTypeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTypeInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketType'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - tickets
+      description: Price is locked after orders exist; quantity cannot drop below sold + reserved.
+      x-implementation-status: implemented
+    delete:
+      summary: Delete a ticket type
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: ticketTypeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - tickets
+      description: Only before any order; otherwise hide it.
+      x-implementation-status: implemented
+  /api/events/{eventId}/staff:
+    get:
+      summary: List Event Admins
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffMember'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - staff
+      description: List Event Admins.
+      x-implementation-status: implemented
+    post:
+      summary: Assign an Event Admin
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                canUndo:
+                  type: boolean
+              required:
+              - email
+      responses:
+        '201':
+          description: Assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffMember'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - staff
+      description: Assigns an existing verified account (resolved via the identity service) to check in
+        guests for this event only.
+      x-implementation-status: implemented
+  /api/events/{eventId}/staff/{staffId}:
+    delete:
+      summary: Remove an Event Admin
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: staffId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Removed
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - staff
+      description: Remove an Event Admin.
+      x-implementation-status: implemented
+  /api/events/{eventId}/orders:
+    get:
+      summary: List an event's orders
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderSummary'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: List an event's orders.
+      x-implementation-status: implemented
+  /api/events/{eventId}/analytics:
+    get:
+      summary: Event analytics
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: ticketTypeId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsReport'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - analytics
+      description: Computed from BiletFlow records; date filters use the payment day in the event time
+        zone.
+      x-implementation-status: implemented
+  /api/events/{eventId}/timeline:
+    get:
+      summary: Event activity history
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Action prefix, e.g. order, event, campaign
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimelineEntry'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - analytics
+      description: Append-only audit trail of the event.
+      x-implementation-status: implemented
+  /api/events/{eventId}/activation:
+    get:
+      summary: Paid-sales activation checklist
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivationChecklist'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Paid-sales activation checklist.
+      x-implementation-status: implemented
+  /api/events/{eventId}/activation/terms:
+    post:
+      summary: Accept paid-sales terms
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivationChecklist'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Accept paid-sales terms.
+      x-implementation-status: implemented
+  /api/events/{eventId}/activation/fee:
+    post:
+      summary: Pay the activation fee (simulated)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardNumber:
+                  type: string
+              required:
+              - cardNumber
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivationChecklist'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '402':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Charges the per-event fee through the simulator; 402 on a declined test card.
+      x-implementation-status: implemented
+  /api/events/{eventId}/activation/activate:
+    post:
+      summary: Activate paid sales
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivationChecklist'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Activate paid sales.
+      x-implementation-status: implemented
+  /api/events/{eventId}/campaigns:
+    get:
+      summary: List promo campaigns with results
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Campaign'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - promo
+      description: List promo campaigns with results.
+      x-implementation-status: implemented
+    post:
+      summary: Create a promo campaign
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - promo
+      description: Create a promo campaign.
+      x-implementation-status: implemented
+  /api/events/{eventId}/campaigns/{campaignId}:
+    patch:
+      summary: Edit or disable a campaign
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: campaignId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                  - active
+                  - disabled
+                validUntil:
+                  type: string
+                  format: date-time
+                  nullable: true
+                maxRedemptions:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - promo
+      description: Edit or disable a campaign.
+      x-implementation-status: implemented
+  /api/events/{eventId}/campaigns/{campaignId}/qr.png:
+    get:
+      summary: Campaign QR image
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: campaignId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - promo
+      description: PNG QR encoding an opaque https campaign link (never an admission ticket).
+      x-implementation-status: implemented
+  /api/events/{eventId}/promo-preview:
+    post:
+      summary: Preview a promo code
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      ticketTypeId:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+              required:
+              - code
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  name:
+                    type: string
+                  discountType:
+                    type: string
+                  discountValue:
+                    type: integer
+                  discountKzt:
+                    type: integer
+                  perTicketType:
+                    type: object
+                    additionalProperties:
+                      type: integer
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - promo
+      description: Server-side discount calculation without reserving a redemption. Rate limited.
+      x-implementation-status: implemented
+  /api/public/campaigns/{token}:
+    get:
+      summary: Open a campaign link
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventId:
+                    type: string
+                    format: uuid
+                  active:
+                    type: boolean
+                  code:
+                    type: string
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - promo
+      description: Counts the visit server-side and returns the event to open with its code.
+      x-implementation-status: implemented
+  /api/checkout/reserve:
+    post:
+      summary: Reserve tickets
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReserveRequest'
+      responses:
+        '201':
+          description: Order created (pending, or completed when free)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - checkout
+      description: Holds inventory for the hold period under a row lock; free orders complete immediately.
+      x-implementation-status: implemented
+  /api/checkout/{orderId}/pay:
+    post:
+      summary: Pay a pending order (simulated)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardNumber:
+                  type: string
+                  description: 4242 4242 4242 4242 succeeds; 4000 0000 0000 0002 declines; 4000 0000 0000
+                    9995 insufficient funds
+                attendees:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                    required:
+                    - name
+                    - email
+              required:
+              - cardNumber
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '402':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - checkout
+      description: Issues tickets only on success; a failure releases inventory and promo redemption (402).
+      x-implementation-status: implemented
+  /api/checkout/{orderId}/abandon:
+    post:
+      summary: Release a hold
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Released
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - checkout
+      description: Release a hold.
+      x-implementation-status: implemented
+  /api/orders:
+    get:
+      summary: My orders
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderSummary'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: My orders.
+      x-implementation-status: implemented
+  /api/orders/{orderId}:
+    get:
+      summary: Order details
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: Visible to the buyer, the event organizer and platform admins.
+      x-implementation-status: implemented
+  /api/orders/{orderId}/tickets.pdf:
+    get:
+      summary: Download all tickets (A4 PDF)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: Download all tickets (A4 PDF).
+      x-implementation-status: implemented
+  /api/orders/{orderId}/tickets/{ticketId}/pdf:
+    get:
+      summary: Download one ticket (A4 PDF)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: Download one ticket (A4 PDF).
+      x-implementation-status: implemented
+  /api/orders/{orderId}/refund:
+    post:
+      summary: Refund a paid order
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+              required:
+              - reason
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: Organizer-initiated full refund (simulated) if no ticket was used.
+      x-implementation-status: implemented
+  /api/orders/{orderId}/cancel:
+    post:
+      summary: Cancel a free registration
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - orders
+      description: Cancel a free registration.
+      x-implementation-status: implemented
+  /api/organizer/payment-setup:
+    get:
+      summary: Simulated identity and payout status
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSetup'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Simulated identity and payout status.
+      x-implementation-status: implemented
+  /api/organizer/payment-setup/identity:
+    put:
+      summary: Simulated identity check
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                legalName:
+                  type: string
+                iin:
+                  type: string
+                  description: 12 digits; format-checked only, never stored
+                consent:
+                  type: boolean
+              required:
+              - legalName
+              - iin
+              - consent
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSetup'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Simulated identity check.
+      x-implementation-status: implemented
+  /api/organizer/payment-setup/payout:
+    put:
+      summary: Set the payout account (simulated)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bankName:
+                  type: string
+                accountHolder:
+                  type: string
+                iban:
+                  type: string
+                  description: KZ IBAN; stored masked
+              required:
+              - bankName
+              - accountHolder
+              - iban
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSetup'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - activation
+      description: Set the payout account (simulated).
+      x-implementation-status: implemented
+  /api/organizer/overview:
+    get:
+      summary: Organizer dashboard
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OverviewEvent'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - analytics
+      description: Organizer dashboard.
+      x-implementation-status: implemented
+  /api/scanner/events:
+    get:
+      summary: Events I can check in
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScannerEvent'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - check-in
+      description: Events I can check in.
+      x-implementation-status: implemented
+  /api/scanner/events/{eventId}:
+    get:
+      summary: Door summary
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  startsAt:
+                    type: string
+                    format: date-time
+                  timezone:
+                    type: string
+                  canUndo:
+                    type: boolean
+                  counts:
+                    type: object
+                    properties:
+                      sold:
+                        type: integer
+                      checkedIn:
+                        type: integer
+                    required:
+                    - sold
+                    - checkedIn
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - check-in
+      description: Door summary.
+      x-implementation-status: implemented
+  /api/scanner/events/{eventId}/scan:
+    post:
+      summary: Scan a QR code
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: string
+              required:
+              - payload
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResult'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - check-in
+      description: Admits a valid ticket exactly once (also across simultaneous devices); rejects campaign
+        QR codes.
+      x-implementation-status: implemented
+  /api/scanner/events/{eventId}/check-in:
+    post:
+      summary: Manual check-in
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticketId:
+                  type: string
+                  format: uuid
+              required:
+              - ticketId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResult'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - check-in
+      description: Manual check-in.
+      x-implementation-status: implemented
+  /api/scanner/events/{eventId}/undo:
+    post:
+      summary: Undo a check-in
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticketId:
+                  type: string
+                  format: uuid
+              required:
+              - ticketId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/ScannerTicket'
+                  counts:
+                    type: object
+                    properties:
+                      sold:
+                        type: integer
+                      checkedIn:
+                        type: integer
+                    required:
+                    - sold
+                    - checkedIn
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - check-in
+      description: Undo a check-in.
+      x-implementation-status: implemented
+  /api/scanner/events/{eventId}/attendees:
+    get:
+      summary: Search attendees at the door
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScannerTicket'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - check-in
+      description: Name, ticket code or order number; no e-mail addresses.
+      x-implementation-status: implemented
+  /api/support/cases:
+    get:
+      summary: My support cases
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupportCase'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - support
+      description: Requesters see their own; organizers also see attendee cases of their events; platform
+        admins see organizer and escalated cases.
+      x-implementation-status: implemented
+    post:
+      summary: Open a support case
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  enum:
+                  - attendee
+                  - organizer
+                category:
+                  type: string
+                  enum:
+                  - ticket_delivery
+                  - payment
+                  - refund
+                  - event_information
+                  - check_in
+                  - account
+                  - activation
+                  - technical
+                subject:
+                  type: string
+                message:
+                  type: string
+                eventId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                orderId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                ticketId:
+                  type: string
+                  format: uuid
+                  nullable: true
+              required:
+              - category
+              - subject
+              - message
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - support
+      description: Context must belong to the requester.
+      x-implementation-status: implemented
+  /api/support/cases/{caseId}:
+    get:
+      summary: Support case with messages
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - support
+      description: Support case with messages.
+      x-implementation-status: implemented
+    patch:
+      summary: Change status, assign or escalate
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - open
+                  - in_progress
+                  - waiting_for_customer
+                  - resolved
+                assignToMe:
+                  type: boolean
+                escalate:
+                  type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - support
+      description: Change status, assign or escalate.
+      x-implementation-status: implemented
+  /api/support/cases/{caseId}/messages:
+    post:
+      summary: Reply on a case
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+              required:
+              - body
+      responses:
+        '201':
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - support
+      description: Reply on a case.
+      x-implementation-status: implemented
+  /api/notifications:
+    get:
+      summary: My notifications
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: X-Locale
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - kk
+          - ru
+          - en
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unread:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - notifications
+      description: My notifications.
+      x-implementation-status: implemented
+  /api/notifications/read-all:
+    post:
+      summary: Mark all read
+      security:
+      - bearerAuth: []
+      responses:
+        '204':
+          description: Done
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - notifications
+      description: Mark all read.
+      x-implementation-status: implemented
+  /api/notifications/{id}/read:
+    post:
+      summary: Mark one read
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Done
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - notifications
+      description: Mark one read.
+      x-implementation-status: implemented
+  /api/admin/summary:
+    get:
+      summary: Platform summary
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Platform summary.
+      x-implementation-status: implemented
+  /api/admin/events:
+    get:
+      summary: Search events
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Search events.
+      x-implementation-status: implemented
+  /api/admin/events/{eventId}/suspend:
+    post:
+      summary: Suspend an event
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+              required:
+              - reason
+      responses:
+        '204':
+          description: Suspended
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Suspend an event.
+      x-implementation-status: implemented
+  /api/admin/events/{eventId}/unsuspend:
+    post:
+      summary: Lift a suspension
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Lifted
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Lift a suspension.
+      x-implementation-status: implemented
+  /api/admin/events/{eventId}/paid-sales:
+    post:
+      summary: Suspend or resume paid sales
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum:
+                  - suspend
+                  - resume
+              required:
+              - action
+      responses:
+        '204':
+          description: Changed
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Suspend or resume paid sales.
+      x-implementation-status: implemented
+  /api/admin/orders:
+    get:
+      summary: Search orders
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Search orders.
+      x-implementation-status: implemented
+  /api/admin/payments:
+    get:
+      summary: Monitor payments and refunds
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - succeeded
+          - failed
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Monitor payments and refunds.
+      x-implementation-status: implemented
+  /api/admin/activations:
+    get:
+      summary: Inspect activations
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Inspect activations.
+      x-implementation-status: implemented
+  /api/admin/campaigns:
+    get:
+      summary: Promo activity
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Promo activity.
+      x-implementation-status: implemented
+  /api/admin/reports:
+    get:
+      summary: Event reports
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminRow'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Event reports.
+      x-implementation-status: implemented
+  /api/admin/reports/{reportId}:
+    patch:
+      summary: Resolve a report
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: reportId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - open
+                  - actioned
+                  - dismissed
+              required:
+              - status
+      responses:
+        '204':
+          description: Updated
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Resolve a report.
+      x-implementation-status: implemented
+  /api/admin/settings:
+    get:
+      summary: Platform settings
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activation_fee_kzt:
+                    type: number
+                  processing_fee_percent:
+                    type: number
+                  hold_minutes:
+                    type: number
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Platform settings.
+      x-implementation-status: implemented
+    put:
+      summary: Change platform settings
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                activation_fee_kzt:
+                  type: number
+                processing_fee_percent:
+                  type: number
+                hold_minutes:
+                  type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activation_fee_kzt:
+                    type: number
+                  processing_fee_percent:
+                    type: number
+                  hold_minutes:
+                    type: number
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: Change platform settings.
+      x-implementation-status: implemented
+  /api/admin/export/{kind}:
+    get:
+      summary: CSV export
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - orders.csv
+          - payments.csv
+      responses:
+        '200':
+          description: OK
+          content:
+            text/csv:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/APIError'
+        '401':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+      tags:
+      - admin
+      description: CSV export.
+      x-implementation-status: implemented
 components:
   securitySchemes:
     bearerAuth:
@@ -848,6 +3783,9 @@ components:
         category:
           type: string
           nullable: true
+        imageUrl:
+          type: string
+          nullable: true
         startsAt:
           type: string
           format: date-time
@@ -855,9 +3793,21 @@ components:
           type: string
           format: date-time
           nullable: true
+        timezone:
+          type: string
+          description: IANA time zone, default Asia/Almaty
         venueId:
           type: string
           format: uuid
+          nullable: true
+        venueName:
+          type: string
+          nullable: true
+        venueAddress:
+          type: string
+          nullable: true
+        city:
+          type: string
           nullable: true
         visibility:
           type: string
@@ -874,9 +3824,76 @@ components:
           - draft
           - published
           - cancelled
+        registrationOpensAt:
+          type: string
+          format: date-time
+          nullable: true
+        registrationClosesAt:
+          type: string
+          format: date-time
+          nullable: true
+        refundPolicy:
+          type: string
+        paidSalesStatus:
+          type: string
+          enum:
+          - inactive
+          - active
+          - suspended
+        suspended:
+          type: boolean
+        suspensionReason:
+          type: string
+          nullable: true
+        duplicatedFrom:
+          type: string
+          format: uuid
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lifecycle:
+          type: string
+          enum:
+          - draft
+          - upcoming
+          - active
+          - completed
+          - cancelled
+        priceFromKzt:
+          type: integer
+          nullable: true
+        ticketsLeft:
+          type: integer
+          nullable: true
+        accessToken:
+          type: string
+          description: Private-link key; returned to the owner only
+      required:
+      - id
+      - organizerId
+      - title
+      - startsAt
+      - timezone
+      - visibility
+      - status
+      - refundPolicy
+      - paidSalesStatus
+      - suspended
+      - createdAt
+      - updatedAt
+      - lifecycle
     Error:
       type: object
       required:
@@ -892,6 +3909,1145 @@ components:
               type: string
             message:
               type: string
+            params:
+              type: object
+              additionalProperties: true
+              description: Values for placeholders in message; clients translate by code.
+    EventCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        timezone:
+          type: string
+          description: IANA time zone, default Asia/Almaty
+        venueName:
+          type: string
+          nullable: true
+        venueAddress:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          enum:
+          - public
+          - unlisted
+          - private
+        capacity:
+          type: integer
+          nullable: true
+        registrationOpensAt:
+          type: string
+          format: date-time
+          nullable: true
+        registrationClosesAt:
+          type: string
+          format: date-time
+          nullable: true
+        refundPolicy:
+          type: string
+        venueId:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - title
+      - startsAt
+    EventUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        timezone:
+          type: string
+          description: IANA time zone, default Asia/Almaty
+        venueName:
+          type: string
+          nullable: true
+        venueAddress:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          enum:
+          - public
+          - unlisted
+          - private
+        capacity:
+          type: integer
+          nullable: true
+        registrationOpensAt:
+          type: string
+          format: date-time
+          nullable: true
+        registrationClosesAt:
+          type: string
+          format: date-time
+          nullable: true
+        refundPolicy:
+          type: string
+    TicketType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        priceKzt:
+          type: integer
+          description: Whole tenge; 0 = free
+        quantity:
+          type: integer
+        salesStartAt:
+          type: string
+          format: date-time
+          nullable: true
+        salesEndAt:
+          type: string
+          format: date-time
+          nullable: true
+        maxPerOrder:
+          type: integer
+        hidden:
+          type: boolean
+        sortOrder:
+          type: integer
+        available:
+          type: integer
+        counts:
+          type: object
+          properties:
+            reserved:
+              type: integer
+            sold:
+              type: integer
+            refunded:
+              type: integer
+            checkedIn:
+              type: integer
+          description: Owner only
+          required:
+          - reserved
+          - sold
+          - refunded
+          - checkedIn
+      required:
+      - id
+      - eventId
+      - name
+      - description
+      - priceKzt
+      - quantity
+      - maxPerOrder
+      - hidden
+      - sortOrder
+      - available
+    TicketTypeInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        priceKzt:
+          type: integer
+          description: Whole tenge; 0 = free
+        quantity:
+          type: integer
+        salesStartAt:
+          type: string
+          format: date-time
+          nullable: true
+        salesEndAt:
+          type: string
+          format: date-time
+          nullable: true
+        maxPerOrder:
+          type: integer
+        hidden:
+          type: boolean
+        sortOrder:
+          type: integer
+    StaffMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        canUndo:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - userId
+      - email
+      - canUndo
+      - createdAt
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        ticketType:
+          type: string
+        attendeeName:
+          type: string
+        status:
+          type: string
+          enum:
+          - valid
+          - checked_in
+          - cancelled
+          - refunded
+        checkedInAt:
+          type: string
+          format: date-time
+          nullable: true
+        qrPayload:
+          type: string
+          description: Signed admission payload BFT1.<id>.<sig>; owner only, valid tickets only
+      required:
+      - id
+      - code
+      - ticketType
+      - attendeeName
+      - status
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        status:
+          type: string
+          enum:
+          - pending
+          - completed
+          - failed
+          - expired
+          - cancelled
+          - refunded
+        event:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+            startsAt:
+              type: string
+              format: date-time
+            endsAt:
+              type: string
+              format: date-time
+              nullable: true
+            timezone:
+              type: string
+            venueName:
+              type: string
+              nullable: true
+            city:
+              type: string
+              nullable: true
+            status:
+              type: string
+            refundPolicy:
+              type: string
+            organizerId:
+              type: string
+              format: uuid
+          required:
+          - id
+          - title
+          - startsAt
+          - timezone
+          - status
+          - refundPolicy
+          - organizerId
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+        buyerPhone:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              ticketTypeId:
+                type: string
+                format: uuid
+              name:
+                type: string
+              quantity:
+                type: integer
+              unitPriceKzt:
+                type: integer
+              discountKzt:
+                type: integer
+            required:
+            - ticketTypeId
+            - name
+            - quantity
+            - unitPriceKzt
+            - discountKzt
+        subtotalKzt:
+          type: integer
+        discountKzt:
+          type: integer
+        totalKzt:
+          type: integer
+        promoCode:
+          type: string
+          nullable: true
+        isSimulated:
+          type: boolean
+          description: 'Always true: payments are simulated in this MVP'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        refundedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        canRefund:
+          type: boolean
+        canCancel:
+          type: boolean
+      required:
+      - id
+      - number
+      - status
+      - event
+      - buyerName
+      - buyerEmail
+      - items
+      - subtotalKzt
+      - discountKzt
+      - totalKzt
+      - isSimulated
+      - createdAt
+      - tickets
+      - canRefund
+      - canCancel
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        status:
+          type: string
+        eventId:
+          type: string
+          format: uuid
+        eventTitle:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+        totalKzt:
+          type: integer
+        discountKzt:
+          type: integer
+        tickets:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - number
+      - status
+      - eventId
+      - eventTitle
+      - startsAt
+      - buyerName
+      - buyerEmail
+      - totalKzt
+      - discountKzt
+      - tickets
+      - createdAt
+    ReserveRequest:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              ticketTypeId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+            required:
+            - ticketTypeId
+            - quantity
+        promoCode:
+          type: string
+          nullable: true
+        buyer:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+              nullable: true
+          required:
+          - name
+          - email
+        attendees:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              email:
+                type: string
+                format: email
+            required:
+            - name
+            - email
+        accessKey:
+          type: string
+          description: Private-event key
+      required:
+      - eventId
+      - items
+      - buyer
+    PaymentSetup:
+      type: object
+      properties:
+        legalName:
+          type: string
+          nullable: true
+        identityVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        bankName:
+          type: string
+          nullable: true
+        accountHolder:
+          type: string
+          nullable: true
+        ibanMasked:
+          type: string
+          nullable: true
+        payoutVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isSimulated:
+          type: boolean
+      required:
+      - isSimulated
+    ActivationChecklist:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        paidSalesStatus:
+          type: string
+        hasPaidTicketType:
+          type: boolean
+        identityVerified:
+          type: boolean
+        payoutAccount:
+          type: boolean
+        feeKzt:
+          type: integer
+        feePaid:
+          type: boolean
+        termsAccepted:
+          type: boolean
+        activatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        ready:
+          type: boolean
+        isSimulated:
+          type: boolean
+      required:
+      - eventId
+      - paidSalesStatus
+      - hasPaidTicketType
+      - identityVerified
+      - payoutAccount
+      - feeKzt
+      - feePaid
+      - termsAccepted
+      - ready
+      - isSimulated
+    CampaignInput:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+          description: 3–30 of A-Z 0-9 - _ (stored upper-case)
+        discountType:
+          type: string
+          enum:
+          - percent
+          - fixed
+        discountValue:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+          nullable: true
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        maxRedemptions:
+          type: integer
+          nullable: true
+        ticketTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - name
+      - code
+      - discountType
+      - discountValue
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+          description: 3–30 of A-Z 0-9 - _ (stored upper-case)
+        discountType:
+          type: string
+          enum:
+          - percent
+          - fixed
+        discountValue:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+          nullable: true
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        maxRedemptions:
+          type: integer
+          nullable: true
+        ticketTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        linkToken:
+          type: string
+        redemptionsCount:
+          type: integer
+        status:
+          type: string
+          enum:
+          - active
+          - disabled
+        linkVisits:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        results:
+          type: object
+          properties:
+            orders:
+              type: integer
+            tickets:
+              type: integer
+            revenueKzt:
+              type: integer
+            discountKzt:
+              type: integer
+          required:
+          - orders
+          - tickets
+          - revenueKzt
+          - discountKzt
+      required:
+      - id
+      - eventId
+      - name
+      - code
+      - discountType
+      - discountValue
+      - ticketTypeIds
+      - redemptionsCount
+      - status
+      - linkVisits
+      - createdAt
+    ScannerTicket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        attendeeName:
+          type: string
+        ticketType:
+          type: string
+        status:
+          type: string
+        checkedInAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - code
+      - attendeeName
+      - ticketType
+      - status
+    ScanResult:
+      type: object
+      properties:
+        result:
+          type: string
+          enum:
+          - admitted
+          - already_used
+          - cancelled
+          - refunded
+          - wrong_event
+          - campaign_qr
+          - invalid
+        message:
+          type: string
+        ticket:
+          $ref: '#/components/schemas/ScannerTicket'
+        counts:
+          type: object
+          properties:
+            sold:
+              type: integer
+            checkedIn:
+              type: integer
+          required:
+          - sold
+          - checkedIn
+      required:
+      - result
+      - message
+      - counts
+    ScannerEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+        venueName:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        status:
+          type: string
+        role:
+          type: string
+          enum:
+          - organizer
+          - event_admin
+        canUndo:
+          type: boolean
+        counts:
+          type: object
+          properties:
+            sold:
+              type: integer
+            checkedIn:
+              type: integer
+          required:
+          - sold
+          - checkedIn
+      required:
+      - id
+      - title
+      - startsAt
+      - timezone
+      - status
+      - role
+      - canUndo
+      - counts
+    SupportMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        author:
+          type: string
+        role:
+          type: string
+          enum:
+          - requester
+          - organizer
+          - biletflow
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - authorId
+      - author
+      - role
+      - body
+      - createdAt
+    SupportCase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: integer
+        kind:
+          type: string
+          enum:
+          - attendee
+          - organizer
+        category:
+          type: string
+          enum:
+          - ticket_delivery
+          - payment
+          - refund
+          - event_information
+          - check_in
+          - account
+          - activation
+          - technical
+        subject:
+          type: string
+        status:
+          type: string
+          enum:
+          - open
+          - in_progress
+          - waiting_for_customer
+          - resolved
+        requesterId:
+          type: string
+          format: uuid
+        requester:
+          type: string
+        eventId:
+          type: string
+          format: uuid
+          nullable: true
+        eventTitle:
+          type: string
+          nullable: true
+        orderId:
+          type: string
+          format: uuid
+          nullable: true
+        orderNumber:
+          type: string
+          nullable: true
+        ticketId:
+          type: string
+          format: uuid
+          nullable: true
+        ticketCode:
+          type: string
+          nullable: true
+        assignedTo:
+          type: string
+          format: uuid
+          nullable: true
+        assignee:
+          type: string
+          nullable: true
+        escalated:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportMessage'
+        canManage:
+          type: boolean
+        canEscalate:
+          type: boolean
+      required:
+      - id
+      - number
+      - kind
+      - category
+      - subject
+      - status
+      - requesterId
+      - requester
+      - escalated
+      - createdAt
+      - updatedAt
+      - canManage
+      - canEscalate
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+          description: Rendered in X-Locale or the saved language
+        body:
+          type: string
+        params:
+          type: object
+          additionalProperties: true
+        link:
+          type: string
+          nullable: true
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - type
+      - title
+      - body
+      - params
+      - read
+      - createdAt
+    AnalyticsReport:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timezone:
+          type: string
+        isSimulated:
+          type: boolean
+        filters:
+          type: object
+          additionalProperties: true
+        summary:
+          type: object
+          properties:
+            ticketsTotal:
+              type: integer
+            sold:
+              type: integer
+            remaining:
+              type: integer
+            checkedIn:
+              type: integer
+            orders:
+              type: integer
+            grossKzt:
+              type: integer
+            discountsKzt:
+              type: integer
+            refundsKzt:
+              type: integer
+            netKzt:
+              type: integer
+            feesKzt:
+              type: integer
+            estimatedPayoutKzt:
+              type: integer
+            capacity:
+              type: integer
+              nullable: true
+            percentSold:
+              type: number
+            attendanceRate:
+              type: number
+          required:
+          - ticketsTotal
+          - sold
+          - remaining
+          - checkedIn
+          - orders
+          - grossKzt
+          - discountsKzt
+          - refundsKzt
+          - netKzt
+          - feesKzt
+          - estimatedPayoutKzt
+          - percentSold
+          - attendanceRate
+        daily:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+                format: date
+              tickets:
+                type: integer
+              revenueKzt:
+                type: integer
+            required:
+            - day
+            - tickets
+            - revenueKzt
+        byTicketType:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              priceKzt:
+                type: integer
+              quantity:
+                type: integer
+              sold:
+                type: integer
+              reserved:
+                type: integer
+              refunded:
+                type: integer
+              checkedIn:
+                type: integer
+              revenueKzt:
+                type: integer
+            required:
+            - id
+            - name
+            - priceKzt
+            - quantity
+            - sold
+            - reserved
+            - refunded
+            - checkedIn
+            - revenueKzt
+        campaigns:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              code:
+                type: string
+              visits:
+                type: integer
+              orders:
+                type: integer
+              tickets:
+                type: integer
+              revenueKzt:
+                type: integer
+              discountKzt:
+                type: integer
+            required:
+            - id
+            - name
+            - code
+            - visits
+            - orders
+            - tickets
+            - revenueKzt
+            - discountKzt
+      required:
+      - eventId
+      - timezone
+      - isSimulated
+      - filters
+      - summary
+      - daily
+      - byTicketType
+      - campaigns
+    TimelineEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          nullable: true
+        description:
+          type: string
+        actor:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - action
+      - entityType
+      - description
+      - metadata
+      - createdAt
+    OverviewEvent:
+      allOf:
+      - $ref: '#/components/schemas/Event'
+      - type: object
+        properties:
+          sold:
+            type: integer
+          checkedIn:
+            type: integer
+          revenueKzt:
+            type: integer
+          openCases:
+            type: integer
+    AdminRow:
+      type: object
+      additionalProperties: true
+      description: Admin list row (fields per endpoint)
   responses:
     APIError:
       description: Request failed; no credential or request input echoed
@@ -904,3 +5060,25 @@ tags:
   description: Python-owned identity and organizer onboarding
 - name: events
   description: Go-owned Event operations; see implementation status in api-contract.md
+- name: tickets
+  description: Ticket types
+- name: staff
+  description: Event Admin assignments
+- name: checkout
+  description: Reservation and simulated payment
+- name: orders
+  description: Orders, tickets, refunds
+- name: activation
+  description: Paid-sales activation
+- name: promo
+  description: Promotional campaigns
+- name: check-in
+  description: Door check-in app
+- name: support
+  description: Support cases
+- name: analytics
+  description: Dashboards and history
+- name: notifications
+  description: In-app notifications
+- name: admin
+  description: Platform administration
