@@ -46,9 +46,9 @@ export default function DashboardEventsPage() {
       {!error ? (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-card border border-border bg-surface p-5"><p className="text-sm font-medium text-text-muted">All events</p><p className="mt-2 text-3xl font-bold text-text">{isLoading ? '—' : events.length}</p></div>
-            <div className="rounded-card border border-border bg-surface p-5"><p className="text-sm font-medium text-text-muted">Drafts</p><p className="mt-2 text-3xl font-bold text-text">{isLoading ? '—' : drafts}</p></div>
-            <div className="rounded-card border border-border bg-surface p-5"><p className="text-sm font-medium text-text-muted">Published</p><p className="mt-2 text-3xl font-bold text-text">{isLoading ? '—' : published}</p></div>
+            <div className="rounded-card bg-navy p-5"><p className="text-sm font-medium text-mist">All events</p><p className="mt-2 font-display text-3xl font-bold text-surface">{isLoading ? '—' : events.length}</p></div>
+            <div className="rounded-card bg-navy p-5"><p className="text-sm font-medium text-mist">Drafts</p><p className="mt-2 font-display text-3xl font-bold text-surface">{isLoading ? '—' : drafts}</p></div>
+            <div className="rounded-card bg-navy p-5"><p className="text-sm font-medium text-mist">Published</p><p className="mt-2 font-display text-3xl font-bold text-mint">{isLoading ? '—' : published}</p></div>
           </div>
           <div className="flex items-center justify-between gap-4"><h2 className="text-xl font-bold text-text">Your event drafts and listings</h2><Button variant="secondary" size="sm" onClick={() => void mutate()}>Refresh</Button></div>
           <EventList
