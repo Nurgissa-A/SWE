@@ -11,18 +11,19 @@ const experienceTypes = [
 export default function HomePage() {
   return (
     <main>
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-16 pt-10 sm:px-6 md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] md:items-center md:gap-10 md:pb-24 md:pt-16 lg:px-8">
+      <section className="bg-navy text-surface">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-16 pt-10 sm:px-6 md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] md:items-center md:gap-10 md:pb-24 md:pt-16 lg:px-8">
         <div className="max-w-xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted">
-            <span className="size-2 rounded-full bg-success" aria-hidden="true" /> Made for moments that stay with you
+          <p className="inline-flex items-center gap-2 rounded-full border border-navy-line bg-navy-raised px-3 py-1.5 text-xs font-semibold text-mist">
+            <span className="size-2 rounded-full bg-mint" aria-hidden="true" /> Made for moments that stay with you
           </p>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-text sm:text-5xl lg:text-6xl">Make plans.<br /><span className="text-primary">Find your people.</span></h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-text-muted sm:text-lg">A better night out starts with the right idea. Find events worth leaving home for, or bring your own to life.</p>
+          <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-surface sm:text-5xl lg:text-[3.5rem]">Make plans.<br /><span className="text-mist">Find your people.</span></h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-mist sm:text-lg">A better night out starts with the right idea. Find events worth leaving home for, or bring your own to life.</p>
           <div className="mt-8"><EventSearch /></div>
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-text-muted">
-            <span>Discover local experiences</span><span aria-hidden="true" className="size-1 rounded-full bg-border" />
-            <span>Plan with confidence</span><span aria-hidden="true" className="size-1 rounded-full bg-border" />
-            <Link href="/dashboard/events" className="font-semibold text-primary hover:text-primary-hover">Host your own</Link>
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-mist">
+            <span>Discover local experiences</span><span aria-hidden="true" className="size-1 rounded-full bg-navy-line" />
+            <span>Plan with confidence</span><span aria-hidden="true" className="size-1 rounded-full bg-navy-line" />
+            <Link href="/dashboard/events" className="font-semibold text-white underline underline-offset-4 hover:text-mint">Host your own</Link>
           </div>
         </div>
         <div className="relative min-h-[24rem] overflow-hidden rounded-card bg-secondary sm:min-h-[30rem]">
@@ -43,6 +44,7 @@ export default function HomePage() {
             <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface text-xl text-primary shadow-lg" aria-hidden="true">↗</span>
           </div>
         </div>
+      </div>
       </section>
 
       <section className="border-y border-border bg-surface">
