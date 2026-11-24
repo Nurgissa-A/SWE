@@ -1,6 +1,7 @@
 import { ApiError } from './errors';
 import { loadSession } from './session';
 import { REQUEST_TIMEOUT_MS } from './config';
+import { currentLocale } from '../i18n';
 
 const NO_INTERNET =
   'Could not reach the BiletFlow server. Check your internet connection (and that the backend is running) and try again.';
@@ -12,7 +13,8 @@ export async function request<T>(
   path: string,
   options: { method?: string; body?: unknown; auth?: boolean } = {}
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  // X-Locale: the servers answer in the language the app is showing.
+  const headers: Record<string, string> = { Accept: 'application/json', 'X-Locale': currentLocale() };
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.auth) {
     const session = await loadSession();

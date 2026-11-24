@@ -3,16 +3,18 @@ import { View, Text, TextInput, FlatList, Pressable, StyleSheet } from 'react-na
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { searchAttendees, AttendeeItem } from '../api';
 import { handleApiError } from '../api/errors';
+import { useI18n } from '../i18n';
 
 const STATUS_LOOK: Record<string, { label: string; color: string }> = {
-  valid: { label: 'Not checked in', color: '#666' },
+  valid: { label: 'Not checked in', color: '#666' }, // labels are translated when shown
   checked_in: { label: 'Checked in', color: '#1e8e3e' },
   cancelled: { label: 'Cancelled', color: '#d93025' },
   refunded: { label: 'Refunded', color: '#d93025' },
 };
 
 export default function SearchScreen() {
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
+  const { t } = useI18n();
+  const { eventId, canUndo } = useLocalSearchParams<{ eventId: string; canUndo?: string }>();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<AttendeeItem[]>([]);
   const [error, setError] = useState('');
@@ -37,7 +39,7 @@ export default function SearchScreen() {
     <View style={styles.container}>
       <TextInput
         style={styles.input}
-        placeholder="Name or ticket code"
+        placeholder={t('Name or ticket code')}
         placeholderTextColor="#888"
         autoCapitalize="none"
         autoCorrect={false}
@@ -49,7 +51,7 @@ export default function SearchScreen() {
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable onPress={load}>
-            <Text style={styles.retry}>Try again</Text>
+            <Text style={styles.retry}>{t('Try again')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -58,19 +60,19 @@ export default function SearchScreen() {
         data={results}
         keyExtractor={(item) => item.code}
         keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={error ? null : <Text style={styles.empty}>No attendees found</Text>}
+        ListEmptyComponent={error ? undefined : <Text style={styles.empty}>{t('No attendees found')}</Text>}
         renderItem={({ item }) => {
           const look = STATUS_LOOK[item.status] ?? { label: item.status, color: '#666' };
           return (
             <Pressable
               style={styles.row}
-              onPress={() => router.push({ pathname: '/result', params: { eventId, code: item.code } })}
+              onPress={() => router.push({ pathname: '/result', params: { eventId, code: item.code, canUndo } })}
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.attendeeName}</Text>
                 <Text style={styles.detail}>{item.ticketType} · {item.code}</Text>
               </View>
-              <Text style={[styles.status, { color: look.color }]}>{look.label}</Text>
+              <Text style={[styles.status, { color: look.color }]}>{t(look.label)}</Text>
             </Pressable>
           );
         }}

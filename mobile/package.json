@@ -43,7 +43,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "export:web": "expo export --platform web"
   },
   "private": true,
   "jest": {

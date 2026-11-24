@@ -4,8 +4,10 @@ import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router
 import { getEvent, EventItem } from '../../api';
 import { handleApiError } from '../../api/errors';
 import ErrorView from '../../components/ErrorView';
+import { useI18n } from '../../i18n';
 
 export default function EventDashboardScreen() {
+  const { t, locale } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export default function EventDashboardScreen() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, locale]);
 
   // Reloads every time you come back (so "Checked in" stays up to date)
   useFocusEffect(
@@ -44,37 +46,40 @@ export default function EventDashboardScreen() {
   if (!event) {
     return (
       <View style={styles.center}>
-        <Text>Event not found</Text>
+        <Text>{t('Event not found')}</Text>
       </View>
     );
   }
+
+  // Undo is only offered when the organizer allowed it for this account (fake data: always).
+  const canUndo = event.canUndo === false ? '0' : '1';
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: event.title }} />
 
       <Text style={styles.detail}>{event.date}</Text>
-      <Text style={styles.detail}>{event.venue}</Text>
+      {event.venue ? <Text style={styles.detail}>{event.venue}</Text> : null}
 
       <View style={styles.stats}>
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>{event.registered ?? '—'}</Text>
-          <Text style={styles.statLabel}>Registered</Text>
+          <Text style={styles.statLabel}>{t('Registered')}</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>{event.checkedIn ?? '—'}</Text>
-          <Text style={styles.statLabel}>Checked in</Text>
+          <Text style={styles.statLabel}>{t('Checked in')}</Text>
         </View>
       </View>
 
-      <Pressable style={styles.button} onPress={() => router.push({ pathname: '/scan', params: { eventId: event.id } })}>
-        <Text style={styles.buttonText}>Scan ticket</Text>
+      <Pressable style={styles.button} onPress={() => router.push({ pathname: '/scan', params: { eventId: event.id, canUndo } })}>
+        <Text style={styles.buttonText}>{t('Scan ticket')}</Text>
       </Pressable>
       <Pressable
         style={[styles.button, styles.secondary]}
-        onPress={() => router.push({ pathname: '/search', params: { eventId: event.id } })}
+        onPress={() => router.push({ pathname: '/search', params: { eventId: event.id, canUndo } })}
       >
-        <Text style={[styles.buttonText, styles.secondaryText]}>Search attendee</Text>
+        <Text style={[styles.buttonText, styles.secondaryText]}>{t('Search attendee')}</Text>
       </Pressable>
     </View>
   );
