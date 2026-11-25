@@ -43,7 +43,8 @@ export function validateEventForm(values: EventFormValues): FieldErrors {
     const capacity = Number(values.capacity);
     if (!Number.isInteger(capacity) || capacity < 1) errors.capacity = 'Capacity must be a positive whole number.';
   }
-  if (values.imageUrl.trim() && !values.imageUrl.trim().startsWith('https://')) errors.imageUrl = 'The image must be an https:// address.';
+  const image = values.imageUrl.trim();
+  if (image && !image.startsWith('https://') && !/^\/api\/event-covers\/[0-9a-f-]{36}$/.test(image)) errors.imageUrl = 'The image must be an https:// address.';
   if (values.registrationOpensAt && values.registrationClosesAt && values.registrationClosesAt <= values.registrationOpensAt) {
     errors.registrationClosesAt = 'Registration must close after it opens.';
   }

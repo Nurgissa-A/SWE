@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
-from app.models.identity import Role, User
+from app.models.identity import RevokedSession, Role, User
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -38,8 +38,10 @@ def resolve_user(
         or not user.is_active
         or not user.email_verified
         or user.token_version != claims["ver"]
+        or session.get(RevokedSession, UUID(claims["jti"])) is not None
     ):
         raise unauthorized()
+    request.state.access_claims = claims
     return user
 
 

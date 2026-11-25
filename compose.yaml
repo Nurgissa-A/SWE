@@ -23,6 +23,7 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      EVENTS_API_URL: http://go:8080
       CORS_ORIGINS: '${PYTHON_CORS_ORIGINS:-["http://localhost:3000"]}'
       DB_POOL_TIMEOUT_SECONDS: ${DB_POOL_TIMEOUT_SECONDS:-5}
       DB_CONNECT_TIMEOUT_SECONDS: ${DB_CONNECT_TIMEOUT_SECONDS:-5}

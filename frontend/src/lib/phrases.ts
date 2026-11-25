@@ -3,6 +3,16 @@
  * key (see lib/locale.ts). `npm run i18n:check` lists phrases that are missing here.
  */
 export const phrases: Record<string, { kk: string; ru: string }> = {
+  "Choose a JPEG, PNG or WebP image": { kk: "JPEG, PNG немесе WebP суретін таңдаңыз", ru: "Выберите изображение JPEG, PNG или WebP" },
+  "Choose a static image of at most 8 megapixels": { kk: "8 мегапиксельден аспайтын статикалық суретті таңдаңыз", ru: "Выберите статичное изображение до 8 мегапикселей" },
+  "Cover not found": { kk: "Мұқаба табылмады", ru: "Обложка не найдена" },
+  "Event cover": { kk: "Іс-шара мұқабасы", ru: "Обложка мероприятия" },
+  "Event service unavailable": { kk: "Іс-шаралар сервисі қолжетімсіз", ru: "Сервис мероприятий недоступен" },
+  "Image is too large": { kk: "Сурет тым үлкен", ru: "Изображение слишком большое" },
+  "Invalid image": { kk: "Сурет жарамсыз", ru: "Некорректное изображение" },
+  "Invalid token expiry": { kk: "Токеннің жарамдылық мерзімі қате", ru: "Некорректный срок действия токена" },
+  "Only the event organizer can change its cover": { kk: "Мұқабаны тек іс-шара ұйымдастырушысы өзгерте алады", ru: "Обложку может изменить только организатор мероприятия" },
+  "Uploaded covers are available for public and unlisted events": { kk: "Мұқабаны ашық және сілтеме арқылы қолжетімді іс-шараларға жүктеуге болады", ru: "Обложку можно загрузить для публичных мероприятий и мероприятий по ссылке" },
   ". Open it to verify your account, then come back to sign in.": { kk: ". Аккаунтыңызды растау үшін оны ашып, кейін кіруге оралыңыз.", ru: ". Откройте его, чтобы подтвердить аккаунт, затем вернитесь и войдите." },
   "0 makes it a free ticket.": { kk: "0 болса — тегін билет.", ru: "0 — бесплатный билет." },
   "1 event": { kk: "1 іс-шара", ru: "1 событие" },

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { ApiEvent } from '@/hooks/useEvents';
-import { getApiErrorMessage } from '@/lib/api-errors';
+import { getApiErrorMessage, toApiRequestError } from '@/lib/api-errors';
+import { getAuthToken } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
 import { validateEventForm, type EventFormValues, type FieldErrors } from '@/lib/validation';
 import { TIME_ZONES, utcToZoned } from '@/lib/zoned-time';
@@ -47,6 +48,7 @@ export function EventForm({ initialEvent, submitLabel, isEdit = false, onSubmit 
   const [submitError, setSubmitError] = useState('');
   const [saved, setSaved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (initialEvent) setValues(eventToValues(initialEvent));
@@ -64,7 +66,20 @@ export function EventForm({ initialEvent, submitLabel, isEdit = false, onSubmit 
     if (Object.keys(errors).length > 0) return;
     setIsSubmitting(true);
     try {
-      await onSubmit(values);
+      let submitted = values;
+      if (initialEvent && coverFile && values.visibility !== 'private') {
+        const response = await fetch(`/api/event-covers/${initialEvent.id}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': coverFile.type },
+          body: coverFile,
+        });
+        const result = await response.json().catch(() => undefined);
+        if (!response.ok) throw toApiRequestError(result, response.status);
+        submitted = { ...values, imageUrl: result.imageUrl };
+      }
+      await onSubmit(submitted);
+      setCoverFile(null);
+      setValues(submitted);
       setSaved(true);
     } catch (error) {
       setSubmitError(getApiErrorMessage(error));
@@ -83,8 +98,17 @@ export function EventForm({ initialEvent, submitLabel, isEdit = false, onSubmit 
         <TextArea label="Description" value={values.description} onChange={(e) => update('description', e.currentTarget.value)} helpText="Help people understand what makes this event special." />
         <div className="grid gap-5 sm:grid-cols-2">
           <TextInput label="Category" value={values.category} onChange={(e) => update('category', e.currentTarget.value)} helpText="For example, music, art, or community." />
-          <TextInput label="Image address (optional)" type="url" value={values.imageUrl} onChange={(e) => update('imageUrl', e.currentTarget.value)} error={fieldErrors.imageUrl} placeholder="https://…" />
+          <TextInput label="Image address (optional)" value={values.imageUrl} onChange={(e) => update('imageUrl', e.currentTarget.value)} error={fieldErrors.imageUrl} placeholder="https://…" />
         </div>
+        {initialEvent && initialEvent.visibility !== 'private' && values.visibility !== 'private' ? (
+          <label className="grid gap-2 text-sm font-medium">
+            {t('Event cover')} (JPEG, PNG, WebP · 1 MiB)
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
+              setSaved(false);
+              setCoverFile(e.currentTarget.files?.[0] ?? null);
+            }} />
+          </label>
+        ) : null}
       </fieldset>
       <fieldset className="grid gap-5">
         <legend className="mb-1 text-sm font-bold uppercase tracking-[0.14em] text-text-muted">{t('When')}</legend>

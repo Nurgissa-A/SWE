@@ -1,14 +1,16 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import current_user, current_user_for_update, require_roles
 from app.db.session import get_session
-from app.models.identity import OrganizerProfile, Role, User
+from app.models.identity import AccountAudit, OrganizerProfile, RevokedSession, Role, User
 from app.repositories.identity import IdentityRepository
 from app.schemas.identity import (
     AdminUser,
@@ -51,6 +53,26 @@ def login(
     user = svc.login(str(data.email), data.password)
     response.headers["Cache-Control"] = "no-store"
     return {"token": request.app.state.tokens.issue(user), "user": user}
+
+
+@router.post("/auth/logout", status_code=204, response_class=Response)
+def logout(
+    request: Request,
+    user: User = Depends(current_user_for_update),
+    session: Session = Depends(get_session),
+):
+    claims = request.state.access_claims
+    try:
+        expires_at = datetime.fromtimestamp(claims["exp"], UTC)
+    except (ValueError, OverflowError, OSError):
+        raise HTTPException(401, "Invalid token expiry") from None
+    session.execute(delete(RevokedSession).where(RevokedSession.expires_at <= datetime.now(UTC)))
+    session.execute(
+        insert(RevokedSession)
+        .values(jti=UUID(claims["jti"]), expires_at=expires_at)
+        .on_conflict_do_nothing()
+    )
+    session.commit()
 
 
 @router.post("/auth/request-password-reset", status_code=200, response_class=Response)
@@ -123,17 +145,21 @@ def admin_users(
 def update_user_status(
     user_id: Annotated[UUID, Path(alias="userId")],
     data: UserStatusUpdate,
-    actor: User = Depends(require_roles(Role.PLATFORM_ADMIN)),
+    actor: User = Depends(require_roles(Role.PLATFORM_ADMIN, for_update=True)),
     session: Session = Depends(get_session),
 ):
-    user = session.get(User, user_id, with_for_update=True, populate_existing=True)
+    user = session.get(User, user_id)
     if user is None:
         raise HTTPException(404, "Account not found")
+    if user.role == Role.PLATFORM_ADMIN:
+        raise HTTPException(403, "Platform administrator status is managed by operators")
+    session.refresh(user, with_for_update=True)
     if user.role == Role.PLATFORM_ADMIN:
         raise HTTPException(403, "Platform administrator status is managed by operators")
     if user.is_active != data.is_active:
         user.is_active = data.is_active
         user.token_version += 1
+        session.add(AccountAudit(actor_id=actor.id, account_id=user.id, is_active=data.is_active))
         session.commit()
     return user
 

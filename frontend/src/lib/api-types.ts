@@ -110,6 +110,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign out
+         * @description Revokes the current access token until its expiry. Other sessions remain active.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Signed out */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["APIError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -633,6 +671,91 @@ export interface paths {
                 503: components["responses"]["APIError"];
             };
         };
+        trace?: never;
+    };
+    "/api/event-covers/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a visible event cover
+         * @description Returns a normalized WebP cover when the event is visible to an anonymous visitor.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Event cover */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/webp": string;
+                    };
+                };
+                404: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        /**
+         * Upload an event cover
+         * @description The owning organizer can upload a static cover for a public or unlisted event.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            responses: {
+                /** @description Cover saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            imageUrl: string;
+                        };
+                    };
+                };
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+                413: components["responses"]["APIError"];
+                415: components["responses"]["APIError"];
+                422: components["responses"]["APIError"];
+                503: components["responses"]["APIError"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/events": {

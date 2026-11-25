@@ -7,7 +7,7 @@ name = "biletflow-identity"
 version = "0.1.0"
 description = "BiletFlow identity and organizer profile service"
 requires-python = ">=3.12,<3.14"
-dependencies = ["fastapi", "uvicorn", "sqlalchemy", "psycopg[binary]", "alembic", "pydantic-settings", "email-validator", "argon2-cffi", "PyJWT[crypto]", "httpx"]
+dependencies = ["fastapi", "uvicorn", "sqlalchemy", "psycopg[binary]", "alembic", "pydantic-settings", "email-validator", "argon2-cffi", "PyJWT[crypto]", "httpx", "Pillow==13.0.0"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "ruff", "openapi-spec-validator"]

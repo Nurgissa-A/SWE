@@ -28,5 +28,6 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     email_from: str = "noreply@biletflow.example"
     frontend_url: str = "http://localhost:3000"
+    events_api_url: str = "http://localhost:8080"
     cors_origins: list[str] = ["http://localhost:3000"]
     trusted_hosts: list[str] = ["localhost", "127.0.0.1", "python", "testserver"]

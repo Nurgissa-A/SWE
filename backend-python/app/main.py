@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.routes import health, identity
+from app.api.routes import covers, health, identity
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings
 from app.core.errors import install_error_handlers
@@ -20,10 +21,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.tokens = TokenService(settings)
-        try:
-            yield
-        finally:
-            app.state.engine.dispose()
+        with httpx.Client(base_url=settings.events_api_url, timeout=2, trust_env=False) as events:
+            app.state.events = events
+            try:
+                yield
+            finally:
+                app.state.engine.dispose()
 
     app = FastAPI(title="BiletFlow Identity API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
@@ -35,13 +38,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST", "PATCH"],
+        allow_methods=["GET", "POST", "PATCH", "PUT"],
         allow_headers=["Authorization", "Content-Type"],
     )
     app.add_middleware(RequestLoggingMiddleware)
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(identity.router)
+    app.include_router(covers.router)
 
     @app.get("/.well-known/jwks.json", tags=["identity"])
     def jwks():

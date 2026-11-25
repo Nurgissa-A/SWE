@@ -11,12 +11,15 @@ class BodyLimitMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
+        limit = self.limit
+        if scope["method"] == "PUT" and scope["path"].startswith("/api/event-covers/"):
+            limit = 1024 * 1024
         headers = dict(scope.get("headers", []))
         try:
             declared = int(headers.get(b"content-length", b"0"))
         except ValueError:
-            declared = self.limit + 1
-        if declared > self.limit:
+            declared = limit + 1
+        if declared > limit:
             return await JSONResponse(
                 {"error": {"code": "413", "message": "Request too large"}}, status_code=413
             )(scope, receive, send)
@@ -26,7 +29,7 @@ class BodyLimitMiddleware:
             nonlocal received
             message = await receive()
             received += len(message.get("body", b""))
-            if received > self.limit:
+            if received > limit:
                 raise HTTPException(413, "Request too large")
             return message
 
