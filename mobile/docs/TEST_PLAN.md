@@ -63,16 +63,20 @@ Run on 2026-11-24 against main at commit 8a2855e: full stack on the laptop (`doc
 | R8 | Scan the same ticket again | Orange "Already checked in" | Pass |
 | R9 | Open the event dashboard | Checked-in count is 1 | Pass |
 | R10 | Search the attendee by name | Attendee found with status Checked in | Pass |
-| R2 | Wrong password against real backend | "Email or password is incorrect." | Not run |
-| R3 | Unverified account | "Please verify your email first" | Not run |
+| R2 | Wrong password against real backend | "Email or password is incorrect." | Pass, 2026-11-25 ([screenshot](evidence/r2-wrong-password.png)) |
+| R3 | Unverified account | Sign-in refused with a clear message | Pass, 2026-11-25: "Email verification required" ([screenshot](evidence/r3-unverified-account.png)) |
 | R4 | Wait 15 minutes (token expiry), open an event | Back to login with "Session expired" | Not run |
-| R5 | Stop the backend, pull to reload | No-internet message + Try again | Not run |
-| R6 | Validation time: scan 10 tickets | Median under 2 s (SRS 7) | Not run |
+| R5 | Stop the backend (`docker compose stop`), open an event | Clear error + Try again, no false result | Pass with note, 2026-11-25: "The server returned an error (500). Please try again." + Try again. The web proxy answers 500 when the API is down, so the app shows the server-error text, not the no-internet text ([screenshot](evidence/r5-backend-stopped.png)) |
+| R6 | Validation time: scan the same real ticket 5 times while recording the screen | Each result under 2 s (SRS 7) | Pass, 2026-11-25: first scan admitted, next four "Already checked in"; each result within 1 s of the QR entering the frame, read from the recording at 4 frames per second ([video](evidence/r6-five-scans-2026-11-25.mp4)) |
+| R11 | Print the ticket PDF in black and white, scan it from paper, then scan again | Admitted, then "Already checked in" | Pass, 2026-11-26 ([video](evidence/r11-printed-ticket-2026-11-26.mp4)) |
 
 ## Summary
 
 Test data (2026-11-24, commit 92606d4): 16/16 automated tests; 8/8 journeys and 11/11 failure cases passed on iPhone.
-Real backend (2026-11-24, commit 8a2855e): a real ticket issued by the web app was admitted once and refused on the second scan; counts and search matched. R2-R6 and Android not yet run.
+Real backend (2026-11-24, commit 8a2855e): a real ticket issued by the web app was admitted once and refused on the second scan; counts and search matched.
+Real backend (2026-11-25 and 2026-11-26, iPhone): R2, R3, R5, R6 and R11 passed (R5 with a note); R4 and Android not run.
+
+Known bug (2026-11-25): with English selected, screen titles and the Back button stay in Russian (visible in the R5 and R11 evidence).
 
 ## Bugs
 
