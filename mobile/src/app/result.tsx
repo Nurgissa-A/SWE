@@ -5,6 +5,7 @@ import { verifyTicket, checkIn, undoCheckIn, VerifyResult } from '../api';
 import { handleApiError } from '../api/errors';
 import ErrorView from '../components/ErrorView';
 import { useI18n } from '../i18n';
+import { useHeaderText } from '../components/useHeaderText';
 
 const GREEN = '#1e8e3e';
 const ORANGE = '#e37400';
@@ -25,6 +26,7 @@ const LOOK: Record<VerifyResult['kind'], { color: string; icon: string; title: s
 
 export default function ResultScreen() {
   const { t } = useI18n();
+  useHeaderText('Result');
   const { eventId, code, canUndo } = useLocalSearchParams<{ eventId: string; code: string; canUndo?: string }>();
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [error, setError] = useState('');

@@ -6,9 +6,11 @@ import { loadSession, clearSession } from '../../api/session';
 import { handleApiError } from '../../api/errors';
 import { LanguagePicker, useI18n } from '../../i18n';
 import ErrorView from '../../components/ErrorView';
+import { useHeaderText } from '../../components/useHeaderText';
 
 export default function MyEventsScreen() {
   const { t, locale } = useI18n();
+  useHeaderText('My Events');
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

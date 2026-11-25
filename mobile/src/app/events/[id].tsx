@@ -5,9 +5,11 @@ import { getEvent, EventItem } from '../../api';
 import { handleApiError } from '../../api/errors';
 import ErrorView from '../../components/ErrorView';
 import { useI18n } from '../../i18n';
+import { useHeaderText } from '../../components/useHeaderText';
 
 export default function EventDashboardScreen() {
   const { t, locale } = useI18n();
+  useHeaderText();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
