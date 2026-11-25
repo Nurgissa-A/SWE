@@ -52,20 +52,27 @@ Result values: **Pass**, **Fail** (open a GitHub Issue and put its number), **No
 | F10 | Set SIMULATE_OFFLINE = true in mock.ts | Every screen shows the no-internet message + Try again | Pass | Not run |
 | F11 | Hold the camera on one QR for 5 seconds | Result opens once, not repeatedly | Pass | Not run |
 
-## Real backend (when available)
+## Real backend
+
+Run on 2026-11-24 against main at commit 8a2855e: full stack on the laptop (`docker compose up`: PostgreSQL, identity, Go business API, Mailpit) and the web app (`npm run dev`, port 3000). App started with `EXPO_PUBLIC_API_URL=http://<laptop-ip>:3000 npx expo start`. Ticket issued through the web app: organizer created and published an event with a free ticket type; a second, attendee account registered and received the QR ticket.
 
 | ID | Steps | Expected | Result |
 | --- | --- | --- | --- |
-| R1 | USE_REAL_BACKEND = true, sign in with a real organizer | My Events shows that organizer's events | |
-| R2 | Wrong password against real backend | "Email or password is incorrect." | |
-| R3 | Unverified account | "Please verify your email first" | |
-| R4 | Wait 15 minutes (token expiry), open an event | Back to login with "Session expired" | |
-| R5 | Stop the backend, pull to reload | No-internet message + Try again | |
-| R6 | Validation time: scan 10 tickets | Median under 2 s (SRS 7) | |
+| R1 | Sign in on the phone as the real organizer | My Events shows the organizer's event | Pass |
+| R7 | Scan the attendee's real QR ticket | Ticket admitted (checked in by the server) | Pass |
+| R8 | Scan the same ticket again | Orange "Already checked in" | Pass |
+| R9 | Open the event dashboard | Checked-in count is 1 | Pass |
+| R10 | Search the attendee by name | Attendee found with status Checked in | Pass |
+| R2 | Wrong password against real backend | "Email or password is incorrect." | Not run |
+| R3 | Unverified account | "Please verify your email first" | Not run |
+| R4 | Wait 15 minutes (token expiry), open an event | Back to login with "Session expired" | Not run |
+| R5 | Stop the backend, pull to reload | No-internet message + Try again | Not run |
+| R6 | Validation time: scan 10 tickets | Median under 2 s (SRS 7) | Not run |
 
 ## Summary
 
-Tested on 2026-11-24 by Aigerim Muratova: 16/16 automated tests passed; 8/8 journeys and 11/11 failure cases passed on iPhone with test data. Android and real-backend checks (R1-R6) not yet run.
+Test data (2026-11-24, commit 92606d4): 16/16 automated tests; 8/8 journeys and 11/11 failure cases passed on iPhone.
+Real backend (2026-11-24, commit 8a2855e): a real ticket issued by the web app was admitted once and refused on the second scan; counts and search matched. R2-R6 and Android not yet run.
 
 ## Bugs
 
