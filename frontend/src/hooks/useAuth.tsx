@@ -65,10 +65,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = useCallback(async () => {
     const previousToken = token;
-    setAuthToken(null);
-    setToken(null);
-    if (previousToken) {
-      await globalMutate(['current-user', previousToken], undefined, { revalidate: false });
+    try {
+      if (previousToken) await authApi.POST('/api/auth/logout');
+    } finally {
+      setAuthToken(null);
+      setToken(null);
+      if (previousToken) {
+        await globalMutate(['current-user', previousToken], undefined, { revalidate: false });
+      }
     }
   }, [globalMutate, token]);
 

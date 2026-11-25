@@ -2,7 +2,15 @@ import enum
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    LargeBinary,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -77,3 +85,27 @@ class EmailDelivery(Base):
     # No raw verification/reset token or password is persisted in this table.
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     attempts: Mapped[int] = mapped_column(default=0)
+
+
+class RevokedSession(Base):
+    __tablename__ = "identity_revoked_sessions"
+
+    jti: Mapped[UUID] = mapped_column(primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class AccountAudit(Base):
+    __tablename__ = "identity_account_audit"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    actor_id: Mapped[UUID]
+    account_id: Mapped[UUID]
+    is_active: Mapped[bool]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class EventCover(Base):
+    __tablename__ = "identity_event_covers"
+
+    event_id: Mapped[UUID] = mapped_column(primary_key=True)
+    body: Mapped[bytes] = mapped_column(LargeBinary)

@@ -210,7 +210,8 @@ app with a fake camera showing a real ticket QR: the first scan is admitted, the
 - **Check-in is online only.** Offline scanning is out of scope for the academic MVP.
 - **Not built (SRS bonus features):** assigned seating with a seat map, calendar (.ics) export,
   and GA4 analytics.
-- **Backups:** automated database backups with a tested restore are not set up yet.
+- **Backups:** the local recovery tool backs up both services and verifies a disposable restore.
+  See [local release and recovery](docs/local-recovery.md).
 - **Two backends:** the SRS suggests one primary backend; the exception is documented in
   [ADR 001](docs/architecture.md) and still needs the instructor's approval.
 - Account verification e-mails from the identity service are in English only.
@@ -220,7 +221,7 @@ app with a fake camera showing a real ticket QR: the first scan is admitted, the
 
 | Member | Role | Main contributions | Pull requests |
 |---|---|---|---|
-| **Aliar** ([Nurgissa-A](https://github.com/Nurgissa-A)) | Backend: identity and security, architecture | Repository setup, Python identity service (accounts, verification, roles, organizer profiles), RS256 JWT security between the Python and Go services, backend CI, architecture decisions | #2, #3, #4, #5, #21 (local HTTPS and release work in open #15, #16) |
+| **Aliar** ([Nurgissa-A](https://github.com/Nurgissa-A)) | Backend: identity and security, architecture | Python identity, roles, account administration, session revocation, event covers, RS256 integration, API contracts, local HTTPS and database recovery | #2, #3, #4, #5, #14, #21 |
 | **Madi** ([mazhumadi](https://github.com/mazhumadi)) | Backend: business API and database | Go event service, business API (events, checkout, tickets, check-in, promo, support, admin) with its database migrations and tests; reviewed and merged the early backend PRs | #1, #11 |
 | **Nurgul** ([bakhtiyarnurgul](https://github.com/bakhtiyarnurgul)) | Web frontend | OpenAPI specification, Next.js app setup, web pages and API integration: sign-in, events, checkout, organizer and admin dashboards, translations | #7, #18 |
 | **Aigerim M.** ([Aikookia-n](https://github.com/Aikookia-n)) | Mobile app, requirements and testing | Door check-in app (scanner, search, undo, live counts), its connection to the real API, unit tests, test plan, iPhone and real-backend test runs with recorded evidence | #8, #17, #20, #23 |

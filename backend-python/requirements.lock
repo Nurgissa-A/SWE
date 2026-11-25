@@ -58,3 +58,4 @@ urllib3==2.8.0
 uvicorn==0.54.0
 
 greenlet==3.5.6; platform_system == "Linux"
+Pillow==13.0.0

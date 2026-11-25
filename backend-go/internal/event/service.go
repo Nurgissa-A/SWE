@@ -616,32 +616,27 @@ func (s *Service) AddStaff(ctx context.Context, r *http.Request, p auth.Principa
 	if !strings.Contains(email, "@") || len(email) > 254 {
 		return nil, platform.BadRequest("INVALID_EMAIL", "Enter a valid e-mail address")
 	}
-	var user platform.DirectoryUser
-	found := false
-	var display sql.NullString
-	if err := s.repo.DB.QueryRowContext(ctx, `SELECT user_id, email, display_name, locale FROM user_directory WHERE lower(email)=$1`, email).
-		Scan(&user.ID, &user.Email, &display, &user.Locale); err == nil {
-		user.DisplayName = platform.NullString(display)
-		found = true
+	// The local directory can still contain accounts that identity has suspended.
+	if s.lookup == nil {
+		return nil, platform.Err(http.StatusServiceUnavailable, "IDENTITY_UNAVAILABLE", "Identity service unavailable")
 	}
-	if !found && s.lookup != nil {
-		user, err = s.lookup(ctx, r.Header.Get("Authorization"), email)
-		if errors.Is(err, ErrUserNotFound) {
-			return nil, platform.NotFound("No verified BiletFlow account uses this e-mail. Ask them to sign up first.")
-		}
-		if err != nil {
-			return nil, platform.Err(http.StatusServiceUnavailable, "IDENTITY_UNAVAILABLE", "Identity service unavailable")
-		}
-		found = true
-		if err := platform.UpsertDirectory(ctx, s.repo.DB, auth.Principal{ID: user.ID, Email: user.Email, DisplayName: deref(user.DisplayName), Locale: user.Locale, Role: "attendee"}); err != nil {
-			return nil, err
-		}
-	}
-	if !found {
+	user, err := s.lookup(ctx, r.Header.Get("Authorization"), email)
+	if errors.Is(err, ErrUserNotFound) {
 		return nil, platform.NotFound("No verified BiletFlow account uses this e-mail. Ask them to sign up first.")
+	}
+	if err != nil {
+		return nil, platform.Err(http.StatusServiceUnavailable, "IDENTITY_UNAVAILABLE", "Identity service unavailable")
 	}
 	if user.ID == e.OrganizerID {
 		return nil, platform.BadRequest("OWNER_IS_STAFF", "You can already check in guests for your own event")
+	}
+	// Preserve the role recorded by authentication when an account is already known.
+	if _, err := s.repo.DB.ExecContext(ctx, `INSERT INTO user_directory (user_id, email, display_name, locale, role)
+		VALUES ($1, $2, $3, $4, 'attendee')
+		ON CONFLICT (user_id) DO UPDATE SET email=EXCLUDED.email, display_name=EXCLUDED.display_name,
+			locale=EXCLUDED.locale, updated_at=now()`,
+		user.ID, user.Email, user.DisplayName, user.Locale); err != nil {
+		return nil, err
 	}
 	var m StaffMember
 	err = platform.InTx(ctx, s.repo.DB, func(tx *sql.Tx) error {

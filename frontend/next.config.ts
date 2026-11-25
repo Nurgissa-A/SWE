@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     return [
       { source: '/api/auth/:path*', destination: `${identityApiUrl}/api/auth/:path*` },
       { source: '/api/users/:path*', destination: `${identityApiUrl}/api/users/:path*` },
+      { source: '/api/event-covers/:path*', destination: `${identityApiUrl}/api/event-covers/:path*` },
       { source: '/api/organizer-profile', destination: `${identityApiUrl}/api/organizer-profile` },
       { source: '/api/admin/users', destination: `${identityApiUrl}/api/admin/users` },
       { source: '/api/admin/users/:path*', destination: `${identityApiUrl}/api/admin/users/:path*` },

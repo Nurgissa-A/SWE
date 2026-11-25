@@ -100,6 +100,11 @@ jobs:
       - run: docker compose up --build -d --wait --wait-timeout 180 python go
       - run: python scripts/smoke_identity.py
       - run: python scripts/smoke_integration.py
+      - name: Verify recovery of the integrated database
+        run: |
+          docker compose stop python go
+          python scripts/database_recovery.py backup .backups/ci.dump --project biletflow
+          python scripts/database_recovery.py rehearse .backups/ci.dump --project biletflow
       - name: Diagnostics on failure
         if: failure()
         run: docker compose logs --no-color --tail 100 migrate python go

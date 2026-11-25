@@ -240,6 +240,8 @@ func TestStaffAssignment(t *testing.T) {
 	if m.UserID != staff.ID {
 		t.Fatalf("staff: %+v", m)
 	}
+	delete(env.Identity, staff.Email)
+	env.Must(404, "POST", "/api/events/"+id+"/staff", map[string]any{"email": staff.Email}, org)
 	var list []struct{ ID, Email string }
 	env.Must(200, "GET", "/api/events/"+id+"/staff", nil, org).JSON(&list)
 	if len(list) != 1 || list[0].Email != staff.Email {

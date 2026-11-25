@@ -104,6 +104,16 @@ paths:
       - identity
       description: Confirm an emailed verification token.
       x-implementation-status: implemented
+  /api/auth/logout:
+    post:
+      tags: [identity]
+      summary: Sign out
+      description: Revokes the current access token until its expiry. Other sessions remain active.
+      security:
+      - bearerAuth: []
+      responses:
+        '204': {description: Signed out}
+        '401': {$ref: '#/components/responses/APIError'}
   /api/auth/login:
     post:
       summary: Log in and receive a JWT
@@ -560,6 +570,56 @@ paths:
       - identity
       description: Replace contact and simulation placeholder fields on own organizer profile.
       x-implementation-status: implemented
+  /api/event-covers/{eventId}:
+    parameters:
+    - in: path
+      name: eventId
+      required: true
+      schema: {type: string, format: uuid}
+    put:
+      tags: [identity]
+      summary: Upload an event cover
+      description: The owning organizer can upload a static cover for a public or unlisted event.
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: {type: string, format: binary}
+          image/png:
+            schema: {type: string, format: binary}
+          image/webp:
+            schema: {type: string, format: binary}
+      responses:
+        '200':
+          description: Cover saved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [imageUrl]
+                properties:
+                  imageUrl: {type: string}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '422': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+    get:
+      tags: [identity]
+      summary: Read a visible event cover
+      description: Returns a normalized WebP cover when the event is visible to an anonymous visitor.
+      responses:
+        '200':
+          description: Event cover
+          content:
+            image/webp:
+              schema: {type: string, format: binary}
+        '404': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
   /api/events:
     post:
       summary: Create a draft event
