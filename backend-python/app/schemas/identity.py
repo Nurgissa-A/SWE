@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -51,6 +52,7 @@ class UserResponse(APIModel):
     display_name: str | None
     email_verified: bool
     created_at: datetime
+    locale: Literal["kk", "ru", "en"]
 
 
 class LoginResponse(APIModel):
@@ -59,7 +61,30 @@ class LoginResponse(APIModel):
 
 
 class UserUpdate(APIModel):
-    display_name: str = Field(max_length=100)
+    display_name: str | None = Field(default=None, max_length=100)
+    locale: Literal["kk", "ru", "en"] | None = None
+
+    @field_validator("locale")
+    @classmethod
+    def require_locale_value(cls, value):
+        if value is None:
+            raise ValueError("Choose kk, ru or en")
+        return value
+
+
+class StaffAccount(APIModel):
+    id: UUID
+    email: EmailStr
+    display_name: str | None
+    locale: Literal["kk", "ru", "en"]
+
+
+class AdminUser(UserResponse):
+    is_active: bool
+
+
+class UserStatusUpdate(APIModel):
+    is_active: bool = Field(strict=True)
 
 
 class ProfileInput(APIModel):

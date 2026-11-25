@@ -27,12 +27,14 @@ class User(Base):
         ),
         CheckConstraint("token_version >= 0", name="ck_token_version"),
         CheckConstraint("email = lower(email)", name="ck_email_normalized"),
+        CheckConstraint("locale IN ('kk','ru','en')", name="ck_user_locale"),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     password_hash: Mapped[str] = mapped_column(String(512))
     role: Mapped[str] = mapped_column(String(32), default=Role.ATTENDEE.value)
     display_name: Mapped[str | None] = mapped_column(String(100))
+    locale: Mapped[str] = mapped_column(String(2), server_default="en")
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     token_version: Mapped[int] = mapped_column(default=0)
