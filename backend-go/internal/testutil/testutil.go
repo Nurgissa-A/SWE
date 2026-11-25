@@ -67,8 +67,13 @@ func New(t testing.TB) *Env {
 		t.Fatal(err)
 	}
 	defer admin.Close()
+	// Test packages run in parallel. On a fresh database two of them can create the extension at
+	// the same moment and one gets a duplicate-key error, so accept it if the extension now exists.
 	if _, err := admin.Exec(`CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public`); err != nil {
-		t.Fatalf("pgcrypto: %v", err)
+		var installed bool
+		if qerr := admin.QueryRow(`SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto')`).Scan(&installed); qerr != nil || !installed {
+			t.Fatalf("pgcrypto: %v", err)
+		}
 	}
 	if _, err := admin.Exec(fmt.Sprintf(`DROP SCHEMA IF EXISTS %s CASCADE; CREATE SCHEMA %s`, schema, schema)); err != nil {
 		t.Fatalf("schema: %v", err)
