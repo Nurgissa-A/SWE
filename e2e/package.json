@@ -1,0 +1,19 @@
+{
+  "name": "@biletflow/e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:web": "playwright test --project=web",
+    "test:door": "playwright test --project=door-app",
+    "report": "playwright show-report",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.19.2",
+    "@types/qrcode": "^1.5.5",
+    "qrcode": "1.5.4",
+    "typescript": "^5.9.3"
+  }
+}
