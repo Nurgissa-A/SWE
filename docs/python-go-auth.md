@@ -6,6 +6,20 @@ Python on 8000 issues tokens; the frontend/API client sends the existing `Author
 
 Required claims: UUID `sub` and `jti`, known role snapshot, integer `ver`, `iss`, `aud`, `iat`, `nbf`, `exp`. Go pins RS256 and rejects unknown kid, missing claims, wrong signature/issuer/audience, future nbf/iat and expired tokens. It then calls the trusted configured Python `/api/users/me` with the same bearer token and a two-second timeout. Python validates current DB status and token version; Go checks the returned subject and verification status and uses its **current database role**. This prevents disabled/deleted/revoked users and old roles from remaining authorized until JWT expiry. Network or identity failure fails closed (503), while invalid/revoked identity is 401. Redirects are not followed.
 
+
+## November identity completion
+
+Python verifies canonical `sub`/`jti` UUIDs, role/version and finite numeric dates,
+including rejection of boolean and nonfinite claims. Valid issued JWTs retain the
+same shape and work with existing Go verification. Identity writes and operator
+changes now serialize on User, preventing a waiting onboarding request from
+restoring stale authorization. The SMTP smoke restarts Python and verifies
+persisted user/profile data and the existing JWT, then the Go smoke tests actual
+issuance/ownership/revocation. Madi's broader persistence PR #6 remains unmerged;
+this Python completion targets main independently and does not claim that PR's
+Event functionality is deployed on main.
+
+
 ## Existing Event route authorization
 
 - POST `/api/events`: authenticated organizer only; owner ID comes from live principal, never request JSON. Unknown fields/forged `organizerId` and trailing JSON are rejected.

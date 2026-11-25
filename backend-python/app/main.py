@@ -28,7 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="BiletFlow Identity API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.mailer = SMTPEmailSender(settings)
-    app.state.engine = make_engine(settings.database_url)
+    app.state.engine = make_engine(settings.database_url, settings)
     app.state.session_factory = make_session_factory(app.state.engine)
     app.add_middleware(BodyLimitMiddleware)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)

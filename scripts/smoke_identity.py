@@ -3,6 +3,7 @@
 import os
 import re
 import secrets
+import subprocess
 import time
 from uuid import uuid4
 
@@ -56,9 +57,34 @@ def main():
         )
         assert profile.status_code == 201 and profile.json()["userId"] == user["id"]
         assert api.get("/api/users/me", headers=headers).json()["role"] == "organizer"
+        changed = api.patch(
+            "/api/users/me", headers=headers, json={"displayName": "Identity smoke"}
+        )
+        assert changed.status_code == 200
+        updated = api.patch(
+            "/api/organizer-profile",
+            headers=headers,
+            json={"contactEmail": user["email"], "contactPhone": "+7 777 123 4567"},
+        )
+        assert updated.status_code == 200
+        expected_user = api.get("/api/users/me", headers=headers).json()
+        expected_profile = updated.json()
+        subprocess.run(["docker", "compose", "restart", "python"], check=True, capture_output=True)
+        for _ in range(40):
+            try:
+                if api.get("/ready").status_code == 200:
+                    break
+            except httpx.TransportError:
+                pass
+            time.sleep(0.25)
+        else:
+            raise AssertionError("Python did not become ready after restart")
+        assert api.get("/api/users/me", headers=headers).json() == expected_user
+        assert api.get("/api/organizer-profile", headers=headers).json() == expected_profile
     print(
         "Identity SMTP/HTTP smoke passed: docs, readiness, registration, real email, "
-        "verification/reuse, login, me, RBAC and organizer profile."
+        "verification/reuse, login, me, RBAC, profile updates and identity/profile "
+        "persistence across Python restart."
     )
 
 

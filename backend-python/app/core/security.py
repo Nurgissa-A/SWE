@@ -1,4 +1,5 @@
 import hashlib
+import math
 import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
@@ -11,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt.algorithms import RSAAlgorithm
 
 from app.core.config import Settings
-from app.models.identity import User
+from app.models.identity import Role, User
 
 password_hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
 DUMMY_HASH = password_hasher.hash(secrets.token_urlsafe(32))
@@ -76,17 +77,29 @@ class TokenService:
         header = jwt.get_unverified_header(token)
         if header.get("kid") != self.settings.jwt_key_id:
             raise jwt.InvalidTokenError("Unknown key")
-        claims = jwt.decode(
-            token,
-            self.public_key,
-            algorithms=["RS256"],
-            issuer=self.settings.jwt_issuer,
-            audience=self.settings.jwt_audience,
-            options={"require": ["sub", "role", "ver", "iss", "aud", "iat", "nbf", "exp", "jti"]},
-        )
-        UUID(claims["sub"])
-        if type(claims["ver"]) is not int or claims["ver"] < 0:
-            raise jwt.InvalidTokenError("Invalid token version")
+        try:
+            claims = jwt.decode(
+                token,
+                self.public_key,
+                algorithms=["RS256"],
+                issuer=self.settings.jwt_issuer,
+                audience=self.settings.jwt_audience,
+                options={
+                    "require": ["sub", "role", "ver", "iss", "aud", "iat", "nbf", "exp", "jti"]
+                },
+            )
+            for field in ("sub", "jti"):
+                if not isinstance(claims[field], str) or str(UUID(claims[field])) != claims[field]:
+                    raise ValueError("Noncanonical UUID claim")
+            Role(claims["role"])
+            for field in ("iat", "nbf", "exp"):
+                value = claims[field]
+                if type(value) not in (int, float) or not math.isfinite(value):
+                    raise ValueError("Invalid numeric date")
+            if type(claims["ver"]) is not int or claims["ver"] < 0:
+                raise ValueError("Invalid token version")
+        except (ValueError, TypeError, OverflowError, KeyError):
+            raise jwt.InvalidTokenError("Invalid access token claims") from None
         return claims
 
     def jwks(self) -> dict:

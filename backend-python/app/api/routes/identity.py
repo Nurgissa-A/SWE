@@ -6,7 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import current_user, require_roles
+from app.api.dependencies import current_user, current_user_for_update, require_roles
 from app.db.session import get_session
 from app.models.identity import OrganizerProfile, Role, User
 from app.repositories.identity import IdentityRepository
@@ -70,7 +70,9 @@ def me(user: User = Depends(current_user)):
 
 @router.patch("/users/me", response_model=UserResponse)
 def update_me(
-    data: UserUpdate, user: User = Depends(current_user), session: Session = Depends(get_session)
+    data: UserUpdate,
+    user: User = Depends(current_user_for_update),
+    session: Session = Depends(get_session),
 ):
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
@@ -139,11 +141,9 @@ def update_user_status(
 @router.post("/organizer-profile", response_model=ProfileResponse, status_code=201)
 def create_profile(
     data: ProfileInput,
-    user: User = Depends(require_roles(Role.ATTENDEE, Role.ORGANIZER)),
+    user: User = Depends(require_roles(Role.ATTENDEE, Role.ORGANIZER, for_update=True)),
     session: Session = Depends(get_session),
 ):
-    # Lock current user to serialize simultaneous onboarding requests for one account.
-    session.refresh(user, with_for_update=True)
     if IdentityRepository(session).profile(user.id):
         raise HTTPException(409, "Organizer profile already exists")
     profile = OrganizerProfile(user_id=user.id, **data.model_dump())
@@ -170,7 +170,7 @@ def profile(
 @router.patch("/organizer-profile", response_model=ProfileResponse)
 def update_profile(
     data: ProfileInput,
-    user: User = Depends(require_roles(Role.ORGANIZER)),
+    user: User = Depends(require_roles(Role.ORGANIZER, for_update=True)),
     session: Session = Depends(get_session),
 ):
     row = IdentityRepository(session).profile(user.id)

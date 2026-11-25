@@ -22,6 +22,12 @@ services:
       JWT_PUBLIC_KEY_FILE: /run/keys/jwt-public.pem
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ORIGINS: '${PYTHON_CORS_ORIGINS:-["http://localhost:3000"]}'
+      DB_POOL_TIMEOUT_SECONDS: ${DB_POOL_TIMEOUT_SECONDS:-5}
+      DB_CONNECT_TIMEOUT_SECONDS: ${DB_CONNECT_TIMEOUT_SECONDS:-5}
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-10000}
+      DB_LOCK_TIMEOUT_MS: ${DB_LOCK_TIMEOUT_MS:-3000}
     command: ["alembic", "upgrade", "head"]
     depends_on:
       postgres: {condition: service_healthy}

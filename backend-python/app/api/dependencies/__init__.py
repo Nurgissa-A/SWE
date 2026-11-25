@@ -17,10 +17,12 @@ def unauthorized():
     )
 
 
-def current_user(
+def resolve_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    session: Session = Depends(get_session),
+    credentials: HTTPAuthorizationCredentials | None,
+    session: Session,
+    *,
+    for_update: bool = False,
 ) -> User:
     if credentials is None or len(credentials.credentials) > 8192:
         raise unauthorized()
@@ -30,7 +32,7 @@ def current_user(
         Role(claims["role"])
     except (jwt.InvalidTokenError, ValueError, TypeError, KeyError):
         raise unauthorized() from None
-    user = session.get(User, uid)
+    user = session.get(User, uid, with_for_update=for_update, populate_existing=for_update)
     if (
         not user
         or not user.is_active
@@ -41,8 +43,27 @@ def current_user(
     return user
 
 
-def require_roles(*roles: Role):
-    def dependency(user: User = Depends(current_user)) -> User:
+def current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    session: Session = Depends(get_session),
+) -> User:
+    return resolve_user(request, credentials, session)
+
+
+def current_user_for_update(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    session: Session = Depends(get_session),
+) -> User:
+    # Recheck status, token version and role after acquiring the account lock.
+    return resolve_user(request, credentials, session, for_update=True)
+
+
+def require_roles(*roles: Role, for_update: bool = False):
+    lookup = current_user_for_update if for_update else current_user
+
+    def dependency(user: User = Depends(lookup)) -> User:
         if Role(user.role) not in roles:
             raise HTTPException(403, "Insufficient permissions")
         return user

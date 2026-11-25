@@ -59,12 +59,27 @@ class IdentityService:
         return user
 
     def consume(self, raw: str, purpose: str) -> User:
-        token = self.repo.lock_token(raw, purpose)
-        now = datetime.now(UTC)
-        if not token or token.used_at is not None or token.expires_at <= now:
+        # All account actions lock user first, then action tokens. Locking a
+        # different reset token first can deadlock when reset invalidates siblings.
+        uid = self.repo.token_owner(raw, purpose)
+        if uid is None:
             raise HTTPException(400, "Invalid or expired token")
-        user = self.session.scalar(select(User).where(User.id == token.user_id).with_for_update())
-        if not user or not user.is_active:
+        user = self.session.scalar(
+            select(User)
+            .where(User.id == uid)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        token = self.repo.lock_token(raw, purpose)
+        now = datetime.now(UTC)  # Expiry is evaluated after any lock wait.
+        if (
+            not user
+            or not user.is_active
+            or not token
+            or token.user_id != uid
+            or token.used_at is not None
+            or token.expires_at <= now
+        ):
             raise HTTPException(400, "Invalid or expired token")
         token.used_at = now
         return user
@@ -75,7 +90,7 @@ class IdentityService:
         self.session.commit()
 
     def login(self, email: str, password: str) -> User:
-        user = self.repo.by_email(email)
+        user = self.repo.by_email(email, for_update=True)
         valid = verify_password(user.password_hash if user else DUMMY_HASH, password)
         if not user or not valid or not user.is_active:
             raise HTTPException(401, "Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
@@ -87,7 +102,7 @@ class IdentityService:
         return user
 
     def request_reset(self, email: str) -> None:
-        user = self.repo.by_email(email)
+        user = self.repo.by_email(email, for_update=True)
         if user and user.is_active:
             self.send_action(user, "reset_password", self.settings.reset_token_minutes)
             self.session.commit()
