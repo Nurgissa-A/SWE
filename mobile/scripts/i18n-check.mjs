@@ -18,6 +18,7 @@ for (const f of files(join(root, 'src'))) {
   if (f.endsWith('mock.ts')) continue; // fake data for demos and tests
   const src = readFileSync(f, 'utf8');
   for (const m of src.matchAll(/\bt\(\s*'((?:[^'\\]|\\.)+)'/g)) add(m[1].replace(/\\'/g, "'"), f);
+  for (const m of src.matchAll(/\buseHeaderText\(\s*'((?:[^'\\]|\\.)+)'/g)) add(m[1], f); // screen titles
   for (const m of src.matchAll(/\b(?:title|label):\s*'([^']+)'/g)) add(m[1], f);
   for (const m of src.matchAll(/new ApiError\(\s*'[^']*',\s*'((?:[^'\\]|\\.)+)'/g)) add(m[1], f);
   for (const m of src.matchAll(/^const [A-Z_]+ =\s*\n?\s*'([A-Z][^']* [^']+)';/gm)) add(m[1], f); // message constants

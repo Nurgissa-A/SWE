@@ -4,6 +4,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { searchAttendees, AttendeeItem } from '../api';
 import { handleApiError } from '../api/errors';
 import { useI18n } from '../i18n';
+import { useHeaderText } from '../components/useHeaderText';
 
 const STATUS_LOOK: Record<string, { label: string; color: string }> = {
   valid: { label: 'Not checked in', color: '#666' }, // labels are translated when shown
@@ -14,6 +15,7 @@ const STATUS_LOOK: Record<string, { label: string; color: string }> = {
 
 export default function SearchScreen() {
   const { t } = useI18n();
+  useHeaderText('Search attendee');
   const { eventId, canUndo } = useLocalSearchParams<{ eventId: string; canUndo?: string }>();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<AttendeeItem[]>([]);

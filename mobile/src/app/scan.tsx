@@ -4,6 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { USE_REAL_BACKEND } from '../api/config';
 import { useI18n } from '../i18n';
+import { useHeaderText } from '../components/useHeaderText';
 
 // Buttons for testing without a printed QR code (fake data only)
 const TEST_CODES = [
@@ -16,6 +17,7 @@ const TEST_CODES = [
 
 export default function ScanScreen() {
   const { t } = useI18n();
+  useHeaderText('Scan ticket');
   const { eventId, canUndo } = useLocalSearchParams<{ eventId: string; canUndo?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const locked = useRef(false); // stops the camera from scanning the same code 10 times
