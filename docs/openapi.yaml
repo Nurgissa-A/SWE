@@ -292,9 +292,11 @@ paths:
                 displayName:
                   type: string
                   maxLength: 100
+                  nullable: true
+                locale:
+                  type: string
+                  enum: [kk, ru, en]
               additionalProperties: false
-              required:
-              - displayName
       responses:
         '200':
           description: Updated
@@ -322,6 +324,92 @@ paths:
       - identity
       description: Update the current user's basic profile fields.
       x-implementation-status: implemented
+  /api/users/lookup:
+    get:
+      tags: [identity]
+      summary: Find an active verified account by exact email for staff assignment
+      description: Organizers and platform administrators can look up verified active accounts.
+      security:
+      - bearerAuth: []
+      parameters:
+      - in: query
+        name: email
+        required: true
+        schema: {type: string, minLength: 3, maxLength: 254}
+      responses:
+        '200':
+          description: Staff directory account
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, email, displayName, locale]
+                properties:
+                  id: {type: string, format: uuid}
+                  email: {type: string, format: email}
+                  displayName: {type: string, nullable: true}
+                  locale: {type: string, enum: [kk, ru, en]}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+  /api/admin/users:
+    get:
+      tags: [identity]
+      summary: Search accounts by email or display name as a platform administrator
+      description: Returns a page of accounts matching the search term.
+      security:
+      - bearerAuth: []
+      parameters:
+      - in: query
+        name: q
+        schema: {type: string, maxLength: 254}
+      - in: query
+        name: limit
+        schema: {type: integer, minimum: 1, maximum: 100, default: 100}
+      - in: query
+        name: offset
+        schema: {type: integer, minimum: 0, default: 0}
+      responses:
+        '200':
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AdminUser'}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+  /api/admin/users/{userId}:
+    patch:
+      tags: [identity]
+      summary: Suspend or reactivate a non-platform-admin account
+      description: Changes account status and invalidates existing sessions when the status changes.
+      security:
+      - bearerAuth: []
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [isActive]
+              properties:
+                isActive: {type: boolean}
+      responses:
+        '200':
+          description: Updated account
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUser'}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
   /api/organizer-profile:
     post:
       summary: Create or complete the organizer profile for the current user
@@ -3732,6 +3820,9 @@ components:
           nullable: true
         emailVerified:
           type: boolean
+        locale:
+          type: string
+          enum: [kk, ru, en]
         createdAt:
           type: string
           format: date-time
@@ -3741,7 +3832,15 @@ components:
       - role
       - displayName
       - emailVerified
+      - locale
       - createdAt
+    AdminUser:
+      allOf:
+      - $ref: '#/components/schemas/User'
+      - type: object
+        required: [isActive]
+        properties:
+          isActive: {type: boolean}
     OrganizerProfile:
       type: object
       properties:

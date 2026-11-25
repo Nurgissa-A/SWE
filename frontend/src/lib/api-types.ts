@@ -330,7 +330,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        displayName: string;
+                        displayName?: string | null;
+                        /** @enum {string} */
+                        locale?: "kk" | "ru" | "en";
                     };
                 };
             };
@@ -352,6 +354,153 @@ export interface paths {
                 422: components["responses"]["APIError"];
                 500: components["responses"]["APIError"];
                 503: components["responses"]["APIError"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/users/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find an active verified account by exact email for staff assignment
+         * @description Organizers and platform administrators can look up verified active accounts.
+         */
+        get: {
+            parameters: {
+                query: {
+                    email: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Staff directory account */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: email */
+                            email: string;
+                            displayName: string | null;
+                            /** @enum {string} */
+                            locale: "kk" | "ru" | "en";
+                        };
+                    };
+                };
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search accounts by email or display name as a platform administrator
+         * @description Returns a page of accounts matching the search term.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    limit?: number;
+                    offset?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Matching users */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminUser"][];
+                    };
+                };
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Suspend or reactivate a non-platform-admin account
+         * @description Changes account status and invalidates existing sessions when the status changes.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        isActive: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated account */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminUser"];
+                    };
+                };
+                401: components["responses"]["APIError"];
+                403: components["responses"]["APIError"];
+                404: components["responses"]["APIError"];
             };
         };
         trace?: never;
@@ -4032,8 +4181,13 @@ export interface components {
             role: "attendee" | "organizer" | "event_admin" | "platform_admin";
             displayName: string | null;
             emailVerified: boolean;
+            /** @enum {string} */
+            locale: "kk" | "ru" | "en";
             /** Format: date-time */
             createdAt: string;
+        };
+        AdminUser: components["schemas"]["User"] & {
+            isActive: boolean;
         };
         OrganizerProfile: {
             /** Format: uuid */

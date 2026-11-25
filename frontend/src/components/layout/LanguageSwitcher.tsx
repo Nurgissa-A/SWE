@@ -13,15 +13,20 @@ export function LanguageSwitcher({ onDark = true }: { onDark?: boolean }) {
 
   // When someone signs in, their saved language wins once per session.
   useEffect(() => {
-    if (!user || synced.current === user.id) return;
+    if (!user) {
+      synced.current = null;
+      return;
+    }
+    if (synced.current === user.id) return;
     synced.current = user.id;
-    const saved = (user as { locale?: string }).locale;
+    const saved = user.locale;
     if (isLocaleCode(saved) && saved !== locale) setLocale(saved);
   }, [user, locale, setLocale]);
 
   async function change(next: Locale) {
     setLocale(next);
-if (user) await authApi.PATCH('/api/users/me', { body: { locale: next } as any }).catch(() => undefined);  }
+    if (user) await authApi.PATCH('/api/users/me', { body: { locale: next } }).catch(() => undefined);
+  }
 
   return (
     <label className="relative inline-flex items-center">

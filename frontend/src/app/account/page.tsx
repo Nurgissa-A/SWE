@@ -24,7 +24,10 @@ function Account() {
   const [lang, setLang] = useState<Locale>(locale);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { setName(user?.displayName ?? ''); }, [user]);
+  useEffect(() => {
+    setName(user?.displayName ?? '');
+    if (user?.locale) setLang(user.locale);
+  }, [user]);
   if (!user) return null;
   const role = { attendee: 'Attendee', organizer: 'Organizer', event_admin: 'Event Admin', platform_admin: 'Platform admin' }[user.role];
   return (

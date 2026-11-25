@@ -54,6 +54,8 @@ build/
 
 # Local identity credentials and test artifacts
 .secrets/
+.backups/
+.storage/
 .coverage
 htmlcov/
 *.egg-info/
