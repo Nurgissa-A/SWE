@@ -220,10 +220,10 @@ app with a fake camera showing a real ticket QR: the first scan is admitted, the
 
 | Member | Role | Main contributions | Pull requests |
 |---|---|---|---|
-| **Aliar** ([Nurgissa-A](https://github.com/Nurgissa-A)) | Backend: identity and security, architecture | Repository setup, Python identity service (accounts, verification, roles, organizer profiles), RS256 JWT security between the Python and Go services, backend CI, architecture decisions | #2, #4, #5, #21 |
+| **Aliar** ([Nurgissa-A](https://github.com/Nurgissa-A)) | Backend: identity and security, architecture | Repository setup, Python identity service (accounts, verification, roles, organizer profiles), RS256 JWT security between the Python and Go services, backend CI, architecture decisions | #2, #3, #4, #5, #21 (local HTTPS and release work in open #15, #16) |
 | **Madi** ([mazhumadi](https://github.com/mazhumadi)) | Backend: business API and database | Go event service, business API (events, checkout, tickets, check-in, promo, support, admin) with its database migrations and tests; reviewed and merged the early backend PRs | #1, #11 |
 | **Nurgul** ([bakhtiyarnurgul](https://github.com/bakhtiyarnurgul)) | Web frontend | OpenAPI specification, Next.js app setup, web pages and API integration: sign-in, events, checkout, organizer and admin dashboards, translations | #7, #18 |
-| **Aigerim M.** ([Aikookia-n](https://github.com/Aikookia-n)) | Mobile app, requirements and testing | Door check-in app (scanner, search, undo, live counts), its connection to the real API, unit tests, test plan, iPhone and real-backend test runs | #8, #17, #20 |
+| **Aigerim M.** ([Aikookia-n](https://github.com/Aikookia-n)) | Mobile app, requirements and testing | Door check-in app (scanner, search, undo, live counts), its connection to the real API, unit tests, test plan, iPhone and real-backend test runs with recorded evidence | #8, #17, #20, #23 |
 | **Aigerim Zh.** ([aigerim25102](https://github.com/aigerim25102)) | Project coordination, QA and UI/UX | Team coordination from week 3 (task split, merge order, PR checks, final verification), design system, WCAG 2.1 AA accessibility and phone layouts, end-to-end test suite and its CI, demo data, project README | #10, #19, #22 |
 
 ## How we worked
