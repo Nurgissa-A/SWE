@@ -328,6 +328,7 @@ paths:
     get:
       tags: [identity]
       summary: Find an active verified account by exact email for staff assignment
+      description: Organizers and platform administrators can look up verified active accounts.
       security:
       - bearerAuth: []
       parameters:
@@ -355,6 +356,7 @@ paths:
     get:
       tags: [identity]
       summary: Search accounts by email or display name as a platform administrator
+      description: Returns a page of accounts matching the search term.
       security:
       - bearerAuth: []
       parameters:
@@ -381,6 +383,7 @@ paths:
     patch:
       tags: [identity]
       summary: Suspend or reactivate a non-platform-admin account
+      description: Changes account status and invalidates existing sessions when the status changes.
       security:
       - bearerAuth: []
       parameters:

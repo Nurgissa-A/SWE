@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -116,9 +117,9 @@ def admin_users(
     ).all()
 
 
-@router.patch("/admin/users/{user_id}", response_model=AdminUser)
+@router.patch("/admin/users/{userId}", response_model=AdminUser)
 def update_user_status(
-    user_id: UUID,
+    user_id: Annotated[UUID, Path(alias="userId")],
     data: UserStatusUpdate,
     actor: User = Depends(require_roles(Role.PLATFORM_ADMIN)),
     session: Session = Depends(get_session),

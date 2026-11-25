@@ -365,7 +365,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Find an active verified account by exact email for staff assignment */
+        /**
+         * Find an active verified account by exact email for staff assignment
+         * @description Organizers and platform administrators can look up verified active accounts.
+         */
         get: {
             parameters: {
                 query: {
@@ -414,7 +417,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search accounts by email or display name as a platform administrator */
+        /**
+         * Search accounts by email or display name as a platform administrator
+         * @description Returns a page of accounts matching the search term.
+         */
         get: {
             parameters: {
                 query?: {
@@ -462,7 +468,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Suspend or reactivate a non-platform-admin account */
+        /**
+         * Suspend or reactivate a non-platform-admin account
+         * @description Changes account status and invalidates existing sessions when the status changes.
+         */
         patch: {
             parameters: {
                 query?: never;
