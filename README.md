@@ -213,7 +213,7 @@ app with a fake camera showing a real ticket QR: the first scan is admitted, the
 - **Backups:** the local recovery tool backs up both services and verifies a disposable restore.
   See [local release and recovery](docs/local-recovery.md).
 - **Two backends:** the SRS suggests one primary backend; the exception is documented in
-  [ADR 001](docs/architecture.md) and still needs the instructor's approval.
+  [ADR 001](docs/architecture.md) and was explained to the instructor at the final presentation (26 Nov 2026).
 - Account verification e-mails from the identity service are in English only.
 - Kazakh texts should be reviewed by a native speaker before a real launch.
 
@@ -221,11 +221,11 @@ app with a fake camera showing a real ticket QR: the first scan is admitted, the
 
 | Member | Role | Main contributions | Pull requests |
 |---|---|---|---|
-| **Aliar** ([Nurgissa-A](https://github.com/Nurgissa-A)) | Backend: identity and security, architecture | Python identity, roles, account administration, session revocation, event covers, RS256 integration, API contracts, local HTTPS and database recovery | #2, #3, #4, #5, #14, #21 |
+| **Aliar** ([Nurgissa-A](https://github.com/Nurgissa-A)) | Backend: identity and security, architecture | Python identity, roles, account administration, session revocation, event covers, RS256 integration, API contracts, local HTTPS and database recovery | #2, #3, #4, #5, #14, #21, #26 |
 | **Madi** ([mazhumadi](https://github.com/mazhumadi)) | Backend: business API and database | Go event service, business API (events, checkout, tickets, check-in, promo, support, admin) with its database migrations and tests; reviewed and merged the early backend PRs | #1, #11 |
 | **Nurgul** ([bakhtiyarnurgul](https://github.com/bakhtiyarnurgul)) | Web frontend | OpenAPI specification, Next.js app setup, web pages and API integration: sign-in, events, checkout, organizer and admin dashboards, translations | #7, #18 |
 | **Aigerim M.** ([Aikookia-n](https://github.com/Aikookia-n)) | Mobile app, requirements and testing | Door check-in app (scanner, search, undo, live counts), its connection to the real API, unit tests, test plan, iPhone and real-backend test runs with recorded evidence | #8, #17, #20, #23 |
-| **Aigerim Zh.** ([aigerim25102](https://github.com/aigerim25102)) | Project coordination, QA and UI/UX | Team coordination from week 3 (task split, merge order, PR checks, final verification), design system, WCAG 2.1 AA accessibility and phone layouts, end-to-end test suite and its CI, demo data, project README | #10, #19, #22 |
+| **Aigerim Zh.** ([aigerim25102](https://github.com/aigerim25102)) | Project coordination, QA and UI/UX | Team coordination from week 3 (task split, merge order, PR checks, final verification), design system, WCAG 2.1 AA accessibility and phone layouts, end-to-end test suite and its CI, demo data, project README | #10, #19, #22, #24 |
 
 ## How we worked
 
@@ -235,7 +235,7 @@ app with a fake camera showing a real ticket QR: the first scan is admitted, the
   finished against the SRS and the course criteria, and checking pull requests. Each area was built
   on its own feature branch against the shared OpenAPI contract (`docs/openapi.yaml`) and merged
   through pull requests (#1–#7).
-- **Verification:** before the demo, every suite was run on the demonstrated commit: 51 identity
+- **Verification:** before the demo, every suite was run on the demonstrated commit: 70 identity
   tests, 55 business API tests, 31 check-in app tests and 18 end-to-end tests, all passing.
 - **Rules:** see [CONTRIBUTING.md](CONTRIBUTING.md). Never commit `.env`, `.secrets/`, passwords
   or tokens.
